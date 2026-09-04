@@ -131,7 +131,10 @@ check('AnalysisResult: vollständige Antwort wird übernommen', function (): voi
                 'completed' => false,
             ],
         ],
-        'decisions' => ['Launch im Oktober'],
+        'decisions' => [
+            ['id' => 'dec01', 'description' => 'Launch im Oktober'],
+            ['id' => 'dec02', 'description' => 'Budget erhöht'],
+        ],
         'extra' => 'wird verworfen',
     ]));
     assertSame('Kurzfassung', $result->summary);
@@ -146,7 +149,10 @@ check('AnalysisResult: vollständige Antwort wird übernommen', function (): voi
     assertSame(null, $result->tasks[0]['assignee']);
     assertSame('2026-09-10T00:00:00.000Z', $result->tasks[0]['due_date']);
     assertSame(false, $result->tasks[0]['completed']);
-    assertSame(['Launch im Oktober'], $result->decisions);
+    assertSame('dec01', $result->decisions[0]['id']);
+    assertSame('Launch im Oktober', $result->decisions[0]['description']);
+    assertSame('dec02', $result->decisions[1]['id']);
+    assertSame('Budget erhöht', $result->decisions[1]['description']);
 });
 
 check('AnalysisResult: fehlende Felder → Defaults', function (): void {
@@ -155,6 +161,17 @@ check('AnalysisResult: fehlende Felder → Defaults', function (): void {
     assertSame([], $result->outline);
     assertSame([], $result->tasks);
     assertSame([], $result->decisions);
+});
+
+check('AnalysisResult: decisions als Strings werden zu Objekten', function (): void {
+    $result = AnalysisResult::fromArray([
+        'decisions' => ['Entscheidung 1', 'Entscheidung 2'],
+    ]);
+    assertSame(2, count($result->decisions));
+    assertTrue(isset($result->decisions[0]['id']), 'ID sollte generiert werden');
+    assertSame('Entscheidung 1', $result->decisions[0]['description']);
+    assertTrue(isset($result->decisions[1]['id']));
+    assertSame('Entscheidung 2', $result->decisions[1]['description']);
 });
 
 check('AnalysisResult: task ohne title wird übersprungen', function (): void {

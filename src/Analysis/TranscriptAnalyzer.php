@@ -33,7 +33,7 @@ Antworte ausschließlich mit einem validen JSON-Objekt mit exakt diesen Feldern:
     }
   ],
   "decisions": [
-    "im Gespräch getroffene Entscheidung"
+    {"id": "eindeutige-id", "description": "im Gespräch getroffene Entscheidung"}
   ]
 }
 
@@ -43,6 +43,7 @@ Regeln:
 - outline ist ein FLACHES Array: Themenblöcke haben title (mit **...**) und leere description, Detailpunkte haben nur description.
 - Jeder outline-Eintrag braucht eine eindeutige id (z. B. fortlaufende Nummer oder Hash).
 - tasks: id ist eindeutig, title enthält Sprecher-Name (aus Transkript) oder Platzhalter {{Speaker_X}}, assignee ist immer null (wird später von externem System befüllt), due_date ist ISO-8601 mit Zeitzone oder null, completed ist immer false.
+- decisions: Array von Objekten mit id und description (Entscheidungen, wichtige Punkte, Risiken, offene Fragen).
 - Wenn es keine Tasks oder Decisions gibt, liefere leere Arrays.
 PROMPT;
 

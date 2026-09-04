@@ -138,7 +138,7 @@ final class AnalysisResult
         return $tasks;
     }
 
-    /** @return array<int, string> */
+    /** @return array<int, array{id: string, description: string}> */
     private static function decisions(mixed $items): array
     {
         $decisions = [];
@@ -146,8 +146,22 @@ final class AnalysisResult
             return $decisions;
         }
         foreach ($items as $item) {
+            // Unterstütze sowohl Strings als auch Objekte
             if (is_string($item) && $item !== '') {
-                $decisions[] = $item;
+                // String → in Objekt umwandeln
+                $decisions[] = [
+                    'id' => bin2hex(random_bytes(16)),
+                    'description' => $item,
+                ];
+            } elseif (is_array($item)) {
+                $description = self::str($item, 'description');
+                if ($description !== '') {
+                    $id = $item['id'] ?? bin2hex(random_bytes(16));
+                    $decisions[] = [
+                        'id' => (string) $id,
+                        'description' => $description,
+                    ];
+                }
             }
         }
         return $decisions;
