@@ -1,0 +1,22 @@
+{
+    "name": "olschlue/gpt-apiv2",
+    "description": "Audio-Upload (MP3/M4A/WAV/WEBM) → OpenAI-Transkription → strukturierte JSON-Auswertung",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1",
+        "ext-curl": "*",
+        "ext-json": "*",
+        "ext-fileinfo": "*",
+        "ext-mbstring": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "scripts": {
+        "test": "php tests/run.php",
+        "serve": "php -d upload_max_filesize=220M -d post_max_size=220M -S 127.0.0.1:8080 -t public"
+    }
+}
