@@ -34,6 +34,17 @@ final class OpenAIClient
      */
     public function transcribe(string $filePath, string $mimeType): string
     {
+        $postFields = [
+            'model' => $this->transcribeModel,
+            'response_format' => 'json',
+            'file' => new CURLFile($filePath, $mimeType, basename($filePath)),
+        ];
+
+        // Diarize-Modelle benötigen zwingend eine chunking_strategy
+        if (str_contains($this->transcribeModel, 'diarize')) {
+            $postFields['chunking_strategy'] = 'auto';
+        }
+
         $ch = $this->curl($this->baseUrl . '/audio/transcriptions');
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
@@ -41,11 +52,7 @@ final class OpenAIClient
             CURLOPT_HTTPHEADER => [
                 'Authorization: Bearer ' . $this->apiKey,
             ],
-            CURLOPT_POSTFIELDS => [
-                'model' => $this->transcribeModel,
-                'response_format' => 'json',
-                'file' => new CURLFile($filePath, $mimeType, basename($filePath)),
-            ],
+            CURLOPT_POSTFIELDS => $postFields,
         ]);
 
         $body = $this->execute($ch, 'Transkription', [
