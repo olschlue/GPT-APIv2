@@ -99,6 +99,13 @@ post_max_size=220M
 
 Der Health-Endpunkt zeigt die aktiven PHP-Limits unter `config.php_limits` an; die Web-UI warnt automatisch, wenn das PHP-Limit unter `MAX_UPLOAD_MB` liegt.
 
+**`[openai_error] ... Audio file might be corrupted or unsupported`** — OpenAI lehnt die Audiodatei ab. Mögliche Ursachen:
+- Datei ist beschädigt oder der Download/Aufnahme wurde abgebrochen → neu aufnehmen oder erneut exportieren
+- Datei heißt `.mp3`, ist aber intern ein anderes Format (z. B. AAC/M4A) → mit einem Audio-Tool korrekt nach MP3 konvertieren
+- Exotischer Codec oder ungewöhnliche Parameter (zu niedrige Bitrate, proprietäre Variante) → standardkonform neu kodieren
+
+Die Fehlermeldung enthält seit Version 917aff5 auch Dateiname, Größe und MIME-Typ zur Diagnose.
+
 ## Struktur
 
 ```

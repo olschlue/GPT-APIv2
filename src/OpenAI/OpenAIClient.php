@@ -48,7 +48,12 @@ final class OpenAIClient
             ],
         ]);
 
-        $body = $this->execute($ch, 'Transkription');
+        $body = $this->execute($ch, 'Transkription', [
+            'Datei' => basename($filePath),
+            'Größe' => round(filesize($filePath) / 1048576, 1) . ' MB',
+            'MIME' => $mimeType,
+            'Modell' => $this->transcribeModel,
+        ]);
         $data = json_decode($body, true);
 
         if (!is_array($data) || !isset($data['text']) || !is_string($data['text'])) {
@@ -113,9 +118,10 @@ final class OpenAIClient
 
     /**
      * @param resource|\CurlHandle $ch
+     * @param array<string, string> $context Zusätzliche Infos für Fehlermeldungen
      * @throws ApiException
      */
-    private function execute($ch, string $operation): string
+    private function execute($ch, string $operation, array $context = []): string
     {
         $body = curl_exec($ch);
         if ($body === false) {
@@ -129,7 +135,15 @@ final class OpenAIClient
 
         if ($status < 200 || $status >= 300) {
             $snippet = mb_strimwidth((string) $body, 0, 500, '…');
-            throw new ApiException('openai_error', "OpenAI API ({$operation}) antwortete mit HTTP {$status}: {$snippet}", 502);
+            $details = '';
+            if ($context !== []) {
+                $pairs = [];
+                foreach ($context as $key => $value) {
+                    $pairs[] = "{$key}: {$value}";
+                }
+                $details = ' [' . implode(', ', $pairs) . ']';
+            }
+            throw new ApiException('openai_error', "OpenAI API ({$operation}) antwortete mit HTTP {$status}: {$snippet}{$details}", 502);
         }
 
         return (string) $body;
