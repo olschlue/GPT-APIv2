@@ -250,6 +250,23 @@ function renderMarkdownLite(text, empty = 'Keine Inhalte vorhanden.') {
 // funktionieren ohne .htaccess und ohne mod_rewrite.
 const API_BASE = 'index.php/api';
 
+// API-Key aus Query-Parameter oder localStorage
+const API_KEY = new URLSearchParams(window.location.search).get('api_key')
+    || localStorage.getItem('api_key')
+    || '';
+if (API_KEY) {
+    localStorage.setItem('api_key', API_KEY);
+}
+
+// Fetch-Wrapper mit API-Key
+async function apiFetch(url, options = {}) {
+    if (API_KEY) {
+        const separator = url.includes('?') ? '&' : '?';
+        url += separator + 'api_key=' + encodeURIComponent(API_KEY);
+    }
+    return fetch(url, options);
+}
+
 // php.ini-Werte wie "8M" / "512K" / "2G" → Bytes; 0/ungültig → unbegrenzt
 function iniToBytes(value) {
     const m = /^\s*(\d+)\s*([KMG]?)/i.exec(String(value ?? ''));
@@ -262,7 +279,7 @@ function iniToBytes(value) {
 
 async function loadHealth() {
     try {
-        const res = await fetch(API_BASE + '/health');
+        const res = await apiFetch(API_BASE + '/health');
         const data = await res.json();
         const el = $('health');
         if (data.status === 'ok' && data.config && data.config.openai_key_configured) {
@@ -411,7 +428,7 @@ $('upload-form').addEventListener('submit', async (e) => {
     body.append('file', file);
 
     try {
-        const res = await fetch(API_BASE + '/transcribe', { method: 'POST', body });
+        const res = await apiFetch(API_BASE + '/transcribe', { method: 'POST', body });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
             showError(data && data.error ? '[' + data.error.code + '] ' + data.error.message

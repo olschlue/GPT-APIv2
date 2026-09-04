@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Analysis\TranscriptAnalyzer;
 use App\Audio\AudioChunker;
 use App\Audio\ChunkedTranscriber;
+use App\Auth\ApiKeyAuth;
 use App\Config;
 use App\Database\Database;
 use App\Database\MeetingRepository;
@@ -32,6 +33,11 @@ final class TranscribeController
 
     public function __invoke(): void
     {
+        // API-Key-Authentifizierung
+        $authConfig = require APP_ROOT . '/config/auth.php';
+        $auth = new ApiKeyAuth($authConfig['api_key']);
+        $auth->authenticate();
+
         $maxMb = $this->config->getInt('MAX_UPLOAD_MB', 200);
 
         // Früher Größen-Check anhand von Content-Length (1 MB Puffer für Multipart-Overhead),

@@ -11,6 +11,7 @@ require dirname(__DIR__) . '/bootstrap.php';
 
 use App\Analysis\AnalysisResult;
 use App\Audio\AudioChunker;
+use App\Auth\ApiKeyAuth;
 use App\Config;
 use App\Database\Database;
 use App\Database\MeetingRepository;
@@ -361,6 +362,55 @@ check('Request: erkennt von PHP verworfenen Body (post_max_size)', function (): 
         $_SERVER = $serverBackup;
         $_FILES = $filesBackup;
         $_POST = $postBackup;
+    }
+});
+
+// ---------------------------------------------------------------- ApiKeyAuth
+
+check('ApiKeyAuth: kein Key konfiguriert → kein Schutz', function (): void {
+    $auth = new ApiKeyAuth('');
+    $auth->authenticate(); // sollte nicht werfen
+    assertTrue(true);
+});
+
+check('ApiKeyAuth: gültiger Key im Header', function (): void {
+    $_SERVER['HTTP_X_API_KEY'] = 'test-key-123';
+    $auth = new ApiKeyAuth('test-key-123');
+    $auth->authenticate(); // sollte nicht werfen
+    unset($_SERVER['HTTP_X_API_KEY']);
+    assertTrue(true);
+});
+
+check('ApiKeyAuth: gültiger Key im Query-Parameter', function (): void {
+    $_GET['api_key'] = 'test-key-456';
+    $auth = new ApiKeyAuth('test-key-456');
+    $auth->authenticate(); // sollte nicht werfen
+    unset($_GET['api_key']);
+    assertTrue(true);
+});
+
+check('ApiKeyAuth: fehlender Key → 401', function (): void {
+    $auth = new ApiKeyAuth('test-key-789');
+    try {
+        $auth->authenticate();
+        throw new \RuntimeException('Sollte ApiException werfen');
+    } catch (ApiException $e) {
+        assertSame('unauthorized', $e->errorCode());
+        assertSame(401, $e->httpStatus());
+    }
+});
+
+check('ApiKeyAuth: ungültiger Key → 403', function (): void {
+    $_SERVER['HTTP_X_API_KEY'] = 'falscher-key';
+    $auth = new ApiKeyAuth('test-key-000');
+    try {
+        $auth->authenticate();
+        throw new \RuntimeException('Sollte ApiException werfen');
+    } catch (ApiException $e) {
+        assertSame('forbidden', $e->errorCode());
+        assertSame(403, $e->httpStatus());
+    } finally {
+        unset($_SERVER['HTTP_X_API_KEY']);
     }
 });
 
