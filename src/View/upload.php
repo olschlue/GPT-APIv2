@@ -73,6 +73,24 @@
     }
     .transcript { white-space: pre-wrap; }
     .hidden { display: none; }
+    /* Markdown-Renderer Styles */
+    #r-summary h1, #r-summary h2, #r-summary h3, #r-summary h4, #r-summary h5, #r-summary h6 {
+        color: var(--accent); margin: 1rem 0 .5rem; font-size: 1.1rem;
+    }
+    #r-summary h3 { font-size: 1rem; }
+    #r-summary ul { margin: .5rem 0 .5rem 1.5rem; padding: 0; }
+    #r-summary li { margin: .25rem 0; }
+    #r-summary p { margin: .5rem 0; }
+    #r-summary code {
+        background: #0b1220; padding: .15rem .4rem; border-radius: .25rem;
+        font-size: .85rem; color: var(--accent);
+    }
+    #r-summary strong { color: var(--text); font-weight: 600; }
+    #r-summary em { color: var(--muted); }
+    .checkbox-off, .checkbox-on { margin-right: .3rem; }
+    .checkbox-off { color: var(--muted); }
+    .checkbox-on { color: var(--ok); }
+    .muted { color: var(--muted); font-style: italic; }
 </style>
 </head>
 <body>
@@ -107,7 +125,7 @@
     </div>
 
     <div id="result" class="hidden">
-        <div class="panel"><h2>Zusammenfassung</h2><p id="r-summary"></p></div>
+        <div class="panel"><h2>Zusammenfassung</h2><div id="r-summary"></div></div>
         <div class="panel"><h2>Gliederung</h2><div id="r-outline"></div></div>
         <div class="panel"><h2>Aufgaben</h2><div id="r-tasks"></div></div>
         <div class="panel"><h2>Entscheidungen</h2><div id="r-decisions"></div></div>
@@ -132,6 +150,101 @@ let maxBytes = <?= (int) $maxUploadMb ?> * 1024 * 1024; // sinkt ggf. durch php.
 
 const $ = (id) => document.getElementById(id);
 const fileInput = $('file'), dropzone = $('dropzone'), submitBtn = $('submit-btn');
+
+// Markdown-Renderer (wie Krisp)
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatInlineMarkdown(text) {
+    let safe = escapeHtml(text);
+    safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    safe = safe.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+    return safe;
+}
+
+function renderMarkdownLite(text, empty = 'Keine Inhalte vorhanden.') {
+    if (!text) {
+        return '<div class="muted">' + escapeHtml(empty) + '</div>';
+    }
+
+    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = text.split('\n');
+    let html = '';
+    let inList = false;
+
+    for (const line of lines) {
+        const raw = line.trim();
+
+        if (raw === '') {
+            if (inList) {
+                html += '</ul>';
+                inList = false;
+            }
+            continue;
+        }
+
+        // Headings: ### Text
+        const headingMatch = raw.match(/^(#{1,6})\s+(.+)$/);
+        if (headingMatch) {
+            if (inList) {
+                html += '</ul>';
+                inList = false;
+            }
+            const level = headingMatch[1].length;
+            html += '<h' + level + '>' + formatInlineMarkdown(headingMatch[2]) + '</h' + level + '>';
+            continue;
+        }
+
+        // Checkbox: - [ ] oder - [x]
+        const checkboxOffMatch = raw.match(/^\-\s+\[\s?\]\s+(.+)$/);
+        if (checkboxOffMatch) {
+            if (!inList) {
+                html += '<ul>';
+                inList = true;
+            }
+            html += '<li><span class="checkbox-off">☐</span> ' + formatInlineMarkdown(checkboxOffMatch[1]) + '</li>';
+            continue;
+        }
+
+        const checkboxOnMatch = raw.match(/^\-\s+\[x\]\s+(.+)$/i);
+        if (checkboxOnMatch) {
+            if (!inList) {
+                html += '<ul>';
+                inList = true;
+            }
+            html += '<li><span class="checkbox-on">☑</span> ' + formatInlineMarkdown(checkboxOnMatch[1]) + '</li>';
+            continue;
+        }
+
+        // Bullet: - Text oder • Text
+        const bulletMatch = raw.match(/^\-\s+(.+)$/) || raw.match(/^•\s+(.+)$/);
+        if (bulletMatch) {
+            if (!inList) {
+                html += '<ul>';
+                inList = true;
+            }
+            html += '<li>' + formatInlineMarkdown(bulletMatch[1]) + '</li>';
+            continue;
+        }
+
+        // Normaler Paragraph
+        if (inList) {
+            html += '</ul>';
+            inList = false;
+        }
+        html += '<p>' + formatInlineMarkdown(raw) + '</p>';
+    }
+
+    if (inList) {
+        html += '</ul>';
+    }
+
+    return html;
+}
 
 // API-Basis: index.php liegt im gleichen Verzeichnis → PATH_INFO-URLs,
 // funktionieren ohne .htaccess und ohne mod_rewrite.
@@ -242,7 +355,7 @@ function el(tag, text, cls) {
 }
 
 function render(data) {
-    $('r-summary').textContent = data.summary || '–';
+    $('r-summary').innerHTML = renderMarkdownLite(data.summary || '–');
     $('r-transcript').textContent = data.transcript || '';
     $('r-json').textContent = JSON.stringify(data, null, 2);
 
