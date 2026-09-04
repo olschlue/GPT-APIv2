@@ -34,14 +34,15 @@ final class OpenAIClient
      */
     public function transcribe(string $filePath, string $mimeType): string
     {
+        // Diarize-Modelle benötigen chunking_strategy und verbose_json für Segmente
+        $isDiarize = str_contains($this->transcribeModel, 'diarize');
+
         $postFields = [
             'model' => $this->transcribeModel,
-            'response_format' => 'json',
+            'response_format' => $isDiarize ? 'verbose_json' : 'json',
             'file' => new CURLFile($filePath, $mimeType, basename($filePath)),
         ];
 
-        // Diarize-Modelle benötigen zwingend eine chunking_strategy
-        $isDiarize = str_contains($this->transcribeModel, 'diarize');
         if ($isDiarize) {
             $postFields['chunking_strategy'] = 'auto';
         }
@@ -65,13 +66,23 @@ final class OpenAIClient
         ]);
         $data = json_decode($body, true);
 
-        if (!is_array($data) || !isset($data['text']) || !is_string($data['text'])) {
+        if (!is_array($data)) {
             throw new ApiException('openai_invalid_response', 'Unerwartete Antwort des Transkriptions-Endpunkts.', 502);
         }
 
         // Bei Diarize-Modellen: Sprecher-Segmente ins Transkript einbauen
-        if ($isDiarize && isset($data['segments']) && is_array($data['segments'])) {
-            return $this->formatWithSpeakers($data['segments']);
+        if ($isDiarize) {
+            if (isset($data['segments']) && is_array($data['segments']) && $data['segments'] !== []) {
+                return $this->formatWithSpeakers($data['segments']);
+            }
+            // Fallback: Wenn keine Segmente, nutze text-Feld mit Hinweis
+            if (isset($data['text']) && is_string($data['text'])) {
+                return $data['text'] . "\n\n[Hinweis: Keine Sprecher-Segmente von der API erhalten]";
+            }
+        }
+
+        if (!isset($data['text']) || !is_string($data['text'])) {
+            throw new ApiException('openai_invalid_response', 'Kein Transkript in der API-Antwort.', 502);
         }
 
         return $data['text'];
