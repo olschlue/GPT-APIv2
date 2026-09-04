@@ -133,11 +133,11 @@ final class TranscribeController
      */
     private function saveMeeting(MeetingRepository $repository, array $response, array $upload, array $result): int
     {
-        // Eindeutige Meeting-ID generieren (oder aus Request übernehmen, falls vorhanden)
-        $krispMeetingId = $_POST['meeting_id'] ?? 'upload_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4));
+        // krisp_meeting_id = aktuelle Zeit in Millisekunden
+        $krispMeetingId = (string) (int) (microtime(true) * 1000);
 
-        // Titel aus Summary ableiten (erste 100 Zeichen)
-        $title = mb_strimwidth($response['summary'] ?? 'Meeting-Transkription', 0, 100, '…');
+        // Titel = Original-Dateiname (ohne Pfad, mit Extension)
+        $title = $upload['original_name'] ?? 'Unbekannt';
 
         // Kunde aus Transkript versuchen zu extrahieren (einfache Heuristik)
         $customer = $this->extractCustomer($response['transcript']);
@@ -157,7 +157,7 @@ final class TranscribeController
             'transcript' => $response['transcript'],
             'transcript_updated_at' => $now,
             'summary' => $response['summary'],
-            'notes' => null, // könnte später aus Analyse erweitert werden
+            'notes' => null,
             'outline' => json_encode($response['outline'], JSON_UNESCAPED_UNICODE),
             'action_items' => json_encode($response['tasks'], JSON_UNESCAPED_UNICODE),
             'key_points' => json_encode($response['decisions'], JSON_UNESCAPED_UNICODE),
@@ -168,19 +168,6 @@ final class TranscribeController
             'last_event_id' => null,
             'raw_payload' => json_encode($response, JSON_UNESCAPED_UNICODE),
         ];
-
-        // Update falls Meeting bereits existiert, sonst Insert
-        if ($repository->exists($krispMeetingId)) {
-            $repository->update($data);
-            // ID des bestehenden Datensatzes ermitteln
-            $stmt = Database::getConnection()->prepare('SELECT id FROM krisp_meetings WHERE krisp_meeting_id = ?');
-            $stmt->bind_param('s', $krispMeetingId);
-            $stmt->execute();
-            $stmt->bind_result($id);
-            $stmt->fetch();
-            $stmt->close();
-            return (int) $id;
-        }
 
         return $repository->create($data);
     }

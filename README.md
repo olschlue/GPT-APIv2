@@ -143,8 +143,9 @@ Die Fehlermeldung enthält seit Version 917aff5 auch Dateiname, Größe und MIME
 
 Wenn eine Datenbank konfiguriert ist (siehe Setup), wird jedes Transkript automatisch in `krisp_meetings` gespeichert:
 
-- **Automatisch generiert:** `krisp_meeting_id` (Format: `upload_20260904_151530_a1b2c3d4`)
-- **Aus Analyse abgeleitet:** `title` (aus Summary), `customer` (Heuristik aus Transkript)
+- **Automatisch generiert:** `krisp_meeting_id` = aktuelle Zeit in Millisekunden (z. B. `1756994530123`)
+- **Aus Upload:** `title` = Original-Dateiname (z. B. `meeting-2026-09-04.mp3`), `recording` = Dateiname
+- **Aus Transkript abgeleitet:** `customer` (Heuristik)
 - **Aus Transkription:** `transcript`, `duration_seconds`, `transcript_updated_at`
 - **Aus Analyse:** `summary`, `outline`, `action_items`, `key_points`, `summary_updated_at`
 - **Rohdaten:** `raw_payload` (komplette JSON-Response)
@@ -162,18 +163,6 @@ Die Response enthält dann zusätzlich:
 ```
 
 Falls die Datenbank nicht erreichbar ist, läuft die API trotzdem — `saved_to_db` ist dann `false` mit einem Hinweis.
-
-### Manuelle Meeting-ID
-
-Beim Upload kann optional eine eigene Meeting-ID als Form-Feld mitgegeben werden:
-
-```bash
-curl -X POST http://localhost/gptapi/public/index.php/api/transcribe \
-  -F "file=@meeting.mp3" \
-  -F "meeting_id=krisp_12345"
-```
-
-Existiert diese ID bereits, wird der Datensatz aktualisiert statt neu angelegt.
 
 ## Struktur
 
