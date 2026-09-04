@@ -34,12 +34,12 @@ final class OpenAIClient
      */
     public function transcribe(string $filePath, string $mimeType): string
     {
-        // Diarize-Modelle benötigen chunking_strategy
+        // Diarize-Modelle benötigen chunking_strategy und diarized_json für Sprecher
         $isDiarize = str_contains($this->transcribeModel, 'diarize');
 
         $postFields = [
             'model' => $this->transcribeModel,
-            'response_format' => 'json',
+            'response_format' => $isDiarize ? 'diarized_json' : 'json',
             'file' => new CURLFile($filePath, $mimeType, basename($filePath)),
         ];
 
@@ -70,23 +70,9 @@ final class OpenAIClient
             throw new ApiException('openai_invalid_response', 'Unerwartete Antwort des Transkriptions-Endpunkts.', 502);
         }
 
-        // Bei Diarize-Modellen: Sprecher-Segmente suchen (verschiedene mögliche Felder)
-        if ($isDiarize) {
-            // Mögliche Felder für Segmente: segments, speaker_segments, utterances
-            $segments = $data['segments'] ?? $data['speaker_segments'] ?? $data['utterances'] ?? null;
-
-            if (is_array($segments) && $segments !== []) {
-                return $this->formatWithSpeakers($segments);
-            }
-
-            // Fallback: text-Feld mit Debug-Info
-            if (isset($data['text']) && is_string($data['text'])) {
-                $debugInfo = sprintf(
-                    "\n\n[Debug: API-Response-Felder: %s]",
-                    implode(', ', array_keys($data))
-                );
-                return $data['text'] . $debugInfo;
-            }
+        // Bei Diarize-Modellen: Segmente mit Sprecher-Labels verarbeiten
+        if ($isDiarize && isset($data['segments']) && is_array($data['segments']) && $data['segments'] !== []) {
+            return $this->formatWithSpeakers($data['segments']);
         }
 
         if (!isset($data['text']) || !is_string($data['text'])) {
