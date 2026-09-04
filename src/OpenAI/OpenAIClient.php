@@ -39,6 +39,7 @@ final class OpenAIClient
 
         $postFields = [
             'model' => $this->transcribeModel,
+            'instructions' => 'Du analysierst Meeting-Transkripte. Antworte auf Deutsch. Erfinde keine Informationen. Wenn eine Information nicht vorhanden ist, verwende null oder ein leeres Array. Erstelle eine Zusammenfassung und extrahiere nur tatsächlich besprochene Aufgaben, Entscheidungen und offene Punkte.',
             'response_format' => $isDiarize ? 'diarized_json' : 'json',
             'file' => new CURLFile($filePath, $mimeType, basename($filePath)),
         ];
