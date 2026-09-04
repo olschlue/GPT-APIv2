@@ -373,19 +373,19 @@ check('ApiKeyAuth: kein Key konfiguriert → kein Schutz', function (): void {
     assertTrue(true);
 });
 
-check('ApiKeyAuth: gültiger Key im Header', function (): void {
-    $_SERVER['HTTP_X_API_KEY'] = 'test-key-123';
-    $auth = new ApiKeyAuth('test-key-123');
-    $auth->authenticate(); // sollte nicht werfen
-    unset($_SERVER['HTTP_X_API_KEY']);
-    assertTrue(true);
-});
-
 check('ApiKeyAuth: gültiger Key im Query-Parameter', function (): void {
     $_GET['api_key'] = 'test-key-456';
     $auth = new ApiKeyAuth('test-key-456');
     $auth->authenticate(); // sollte nicht werfen
     unset($_GET['api_key']);
+    assertTrue(true);
+});
+
+check('ApiKeyAuth: gültiger Key im POST-Parameter', function (): void {
+    $_POST['api_key'] = 'test-key-789';
+    $auth = new ApiKeyAuth('test-key-789');
+    $auth->authenticate(); // sollte nicht werfen
+    unset($_POST['api_key']);
     assertTrue(true);
 });
 
@@ -401,7 +401,7 @@ check('ApiKeyAuth: fehlender Key → 401', function (): void {
 });
 
 check('ApiKeyAuth: ungültiger Key → 403', function (): void {
-    $_SERVER['HTTP_X_API_KEY'] = 'falscher-key';
+    $_GET['api_key'] = 'falscher-key';
     $auth = new ApiKeyAuth('test-key-000');
     try {
         $auth->authenticate();
@@ -410,7 +410,7 @@ check('ApiKeyAuth: ungültiger Key → 403', function (): void {
         assertSame('forbidden', $e->errorCode());
         assertSame(403, $e->httpStatus());
     } finally {
-        unset($_SERVER['HTTP_X_API_KEY']);
+        unset($_GET['api_key']);
     }
 });
 
