@@ -27,6 +27,8 @@ final class HealthController
                 'php_limits' => [
                     'upload_max_filesize' => (string) ini_get('upload_max_filesize'),
                     'post_max_size' => (string) ini_get('post_max_size'),
+                    'loaded_ini' => php_ini_loaded_file() ?: 'keine',
+                    'scanned_ini' => php_ini_scanned_files() ?: 'keine',
                 ],
             ],
         ]);
