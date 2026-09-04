@@ -1,9 +1,11 @@
-RewriteEngine On
-
-# MultiViews verhindern (Content-Negotiation würde sonst /api/health auf /api.php o. ä. mappen)
-Options -MultiViews
-
-# Alles, was keine echte Datei/kein echtes Verzeichnis ist, an den Front Controller geben
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.php [QSA,L]
+# Optional: saubere URLs ohne index.php (erfordert mod_rewrite).
+# Die App funktioniert auch ohne diese Datei – dann über PATH_INFO-URLs:
+#   /public/index.php/api/health
+#
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     Options -MultiViews
+#     RewriteCond %{REQUEST_FILENAME} !-f
+#     RewriteCond %{REQUEST_FILENAME} !-d
+#     RewriteRule ^ index.php [QSA,L]
+# </IfModule>

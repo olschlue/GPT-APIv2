@@ -39,8 +39,9 @@ Fehlerfälle liefern JSON mit `error.code` / `error.message` und passendem HTTP-
 
 ```bash
 cp .env.example .env   # OPENAI_API_KEY eintragen
-composer install       # optional – ohne Composer greift ein Fallback-Autoloader
 ```
+
+Kein Composer erforderlich — ein eigener Autoloader lädt die Klassen automatisch.
 
 Konfiguration (Priorität: Umgebungsvariable > `.env` > `config/config.php`):
 
@@ -54,27 +55,30 @@ Konfiguration (Priorität: Umgebungsvariable > `.env` > `config/config.php`):
 
 ## Starten
 
+### PHP Built-in Server (lokal zum Testen)
+
 ```bash
-composer serve
-# oder ohne Composer:
 php -d upload_max_filesize=220M -d post_max_size=220M -S 127.0.0.1:8080 -t public
 ```
 
 Die `php -d`-Flags müssen größer als `MAX_UPLOAD_MB` sein, sonst blockiert PHP den Upload vor der eigenen Validierung.
 
-### Apache / XAMPP (Unterverzeichnis)
+### Apache / XAMPP (ohne .htaccess, ohne mod_rewrite)
 
-Die App funktioniert auch, wenn das Projekt in einem Unterverzeichnis liegt, z. B. `htdocs/gptapi/`. Aufruf dann über `http://localhost/gptapi/public/` bzw. `.../public/index.php`. Voraussetzung: `mod_rewrite` ist aktiv und `.htaccess` wird ausgewertet (`AllowOverride All`). Der App-Pfad wird relativ zum Skript-Verzeichnis aufgelöst, die Endpunkte lauten dann z. B. `http://localhost/gptapi/public/api/health`.
+Das Projekt in ein Unterverzeichnis legen, z. B. `htdocs/gptapi/`. Dann:
 
-### Apache / XAMPP ohne mod_rewrite
+| Ziel | URL |
+|---|---|
+| Web-UI | `http://localhost/gptapi/public/` |
+| Health | `http://localhost/gptapi/public/index.php/api/health` |
+| Transcribe (POST) | `http://localhost/gptapi/public/index.php/api/transcribe` |
 
-Wenn Rewrite-Regeln nicht greifen (z. B. `AllowOverride None`), funktionieren die PATH_INFO-URLs:
+Die Web-UI ruft die API automatisch über die passenden PATH_INFO-URLs auf.
+Kein `mod_rewrite`, keine `.htaccess`-Auswertung nötig.
 
-- `http://localhost/gptapi/public/index.php` → Web-UI
-- `http://localhost/gptapi/public/index.php/api/health` → Health-Check
-- `http://localhost/gptapi/public/index.php/api/transcribe` → Transkription (POST)
+### Apache / XAMPP mit mod_rewrite (optional)
 
-Die Web-UI ruft die API automatisch über die jeweils passende URL auf.
+Wer kürzere URLs möchte (`.../public/api/health` statt `.../public/index.php/api/health`), kann den Rewrite-Block in `public/.htaccess` einkommentieren. Voraussetzung: `mod_rewrite` aktiv + `AllowOverride All`.
 
 ## Tests
 
@@ -87,7 +91,7 @@ Eigenständiger Test-Runner ohne externe Abhängigkeiten (Upload-Regeln, Config,
 ## Struktur
 
 ```
-├── bootstrap.php          # Autoloading (Composer oder Fallback)
+├── bootstrap.php          # Eigener PSR-4-Autoloader (kein Composer nötig)
 ├── config/config.php      # Default-Konfiguration
 ├── public/                # Document Root (Front Controller)
 │   └── index.php

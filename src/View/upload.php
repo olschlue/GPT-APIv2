@@ -132,9 +132,13 @@ const ALLOWED = ['mp3', 'm4a', 'wav', 'webm'];
 const $ = (id) => document.getElementById(id);
 const fileInput = $('file'), dropzone = $('dropzone'), submitBtn = $('submit-btn');
 
+// API-Basis: index.php liegt im gleichen Verzeichnis → PATH_INFO-URLs,
+// funktionieren ohne .htaccess und ohne mod_rewrite.
+const API_BASE = 'index.php/api';
+
 async function loadHealth() {
     try {
-        const res = await fetch('api/health');
+        const res = await fetch(API_BASE + '/health');
         const data = await res.json();
         const el = $('health');
         if (data.status === 'ok' && data.config && data.config.openai_key_configured) {
@@ -269,7 +273,7 @@ $('upload-form').addEventListener('submit', async (e) => {
     body.append('file', file);
 
     try {
-        const res = await fetch('api/transcribe', { method: 'POST', body });
+        const res = await fetch(API_BASE + '/transcribe', { method: 'POST', body });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
             showError(data && data.error ? '[' + data.error.code + '] ' + data.error.message

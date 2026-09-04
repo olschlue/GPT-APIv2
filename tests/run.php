@@ -293,8 +293,9 @@ check('WebController: GET / liefert die UI-Seite', function (): void {
     $router->dispatch('GET', '/');
     $html = (string) ob_get_clean();
     assertTrue(str_contains($html, '<form'), 'UI sollte ein Formular enthalten');
-    assertTrue(str_contains($html, 'api/transcribe'), 'UI sollte den Transcribe-Endpunkt aufrufen');
-    assertTrue(str_contains($html, 'api/health'), 'UI sollte den Health-Endpunkt abfragen');
+    assertTrue(str_contains($html, "'index.php/api'"), 'UI sollte PATH_INFO-API-Basis nutzen');
+    assertTrue(str_contains($html, '/transcribe'), 'UI sollte den Transcribe-Endpunkt aufrufen');
+    assertTrue(str_contains($html, '/health'), 'UI sollte den Health-Endpunkt abfragen');
 });
 
 // ---------------------------------------------------------------- Ergebnis
