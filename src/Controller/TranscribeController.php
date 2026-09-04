@@ -175,6 +175,18 @@ final class TranscribeController
             $recordingUrl = rtrim($basePath, '/') . '/' . $relativePath;
         }
 
+        // Recording als JSON-Objekt (wie Krisp-API-Format)
+        $recordingData = [
+            'id' => $krispMeetingId,
+            'size' => $upload['size'] ?? null,
+            'type' => 'audio',
+            'duration' => round($result['duration'], 3),
+            'mime_type' => $upload['mime'] ?? 'audio/mpeg',
+            'filename' => $upload['original_name'] ?? null,
+            'recording_url' => $recordingUrl,
+            'uploaded_at' => date('c'), // ISO 8601
+        ];
+
         $data = [
             'krisp_meeting_id' => $krispMeetingId,
             'title' => $title,
@@ -190,8 +202,8 @@ final class TranscribeController
             'outline' => json_encode($response['outline'], JSON_UNESCAPED_UNICODE),
             'action_items' => json_encode($response['tasks'], JSON_UNESCAPED_UNICODE),
             'key_points' => json_encode($response['decisions'], JSON_UNESCAPED_UNICODE),
-            'recording' => $upload['original_name'] ?? null, // Nur Dateiname
-            'recording_url' => $recordingUrl, // URL zur Datei
+            'recording' => json_encode($recordingData, JSON_UNESCAPED_UNICODE), // JSON-Objekt
+            'recording_url' => $recordingUrl, // String-URL
             'summary_updated_at' => $now,
             'last_event_type' => 'transcription.completed',
             'last_event_id' => null,
