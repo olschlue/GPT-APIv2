@@ -325,18 +325,19 @@ check('OpenAIClient: Sprecher-Formatierung aus Segmenten', function (): void {
     $method->setAccessible(true);
 
     $segments = [
-        ['speaker' => 'Sprecher 1', 'text' => 'Hallo zusammen.'],
-        ['speaker' => 'Sprecher 1', 'text' => 'Schön dass ihr da seid.'],
-        ['speaker' => 'Sprecher 2', 'text' => 'Danke für die Einladung.'],
-        ['speaker' => 'Sprecher 1', 'text' => 'Fangen wir an.'],
+        ['speaker' => 'A', 'speaker_name' => 'Oliver', 'text' => 'Guten Morgen zusammen.'],
+        ['speaker' => 'A', 'speaker_name' => 'Oliver', 'text' => 'Schön dass ihr da seid.'],
+        ['speaker' => 'B', 'text' => 'Danke für die Einladung.'],
+        ['speaker' => 'A', 'speaker_name' => 'Oliver', 'text' => 'Fangen wir an.'],
     ];
 
     $result = $method->invoke($client, $segments);
 
-    assertTrue(str_contains($result, '**Sprecher 1:**'), 'Sprecher 1 sollte markiert sein');
-    assertTrue(str_contains($result, '**Sprecher 2:**'), 'Sprecher 2 sollte markiert sein');
-    assertTrue(str_contains($result, 'Hallo zusammen.'), 'Text sollte enthalten sein');
-    assertTrue(substr_count($result, '**Sprecher 1:**') === 2, 'Sprecher 1 sollte 2x markiert sein (Wechsel)');
+    assertTrue(str_contains($result, '**Oliver:**'), 'speaker_name sollte verwendet werden');
+    assertTrue(str_contains($result, '**B:**'), 'speaker als Fallback');
+    assertTrue(str_contains($result, 'Guten Morgen zusammen.'), 'Text sollte enthalten sein');
+    assertTrue(substr_count($result, '**Oliver:**') === 2, 'Oliver sollte 2x markiert sein (Wechsel)');
+    assertTrue(!str_contains($result, '**A:**'), 'speaker sollte nicht verwendet werden wenn speaker_name vorhanden');
 });
 
 check('Router: registrierte Route wird aufgerufen', function (): void {

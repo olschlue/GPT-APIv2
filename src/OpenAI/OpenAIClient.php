@@ -93,7 +93,8 @@ final class OpenAIClient
         $lastSpeaker = null;
 
         foreach ($segments as $segment) {
-            $speaker = $segment['speaker'] ?? 'Sprecher';
+            // speaker_name bevorzugen (z. B. "Oliver"), sonst speaker (z. B. "A")
+            $speaker = $segment['speaker_name'] ?? $segment['speaker'] ?? 'Sprecher';
             $text = trim((string) ($segment['text'] ?? ''));
 
             if ($text === '') {
