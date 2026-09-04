@@ -205,6 +205,41 @@ check('AudioUploadHandler: INI-Größenfehler → 413', function (): void {
     });
 });
 
+// ---------------------------------------------------------------- Request::path
+
+check('Request: Pfad-Auflösung im Document-Root', function (): void {
+    $serverBackup = $_SERVER;
+    try {
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
+        $_SERVER['REQUEST_URI'] = '/api/transcribe';
+        assertSame('/api/transcribe', (new \App\Http\Request())->path());
+        $_SERVER['REQUEST_URI'] = '/index.php/api/health';
+        assertSame('/api/health', (new \App\Http\Request())->path());
+    } finally {
+        $_SERVER = $serverBackup;
+    }
+});
+
+check('Request: Pfad-Auflösung in Unterverzeichnis-Installation', function (): void {
+    $serverBackup = $_SERVER;
+    try {
+        // Aufruf über /gptapi/public/index.php (Apache, Projekt in Unterverzeichnis)
+        $_SERVER['SCRIPT_NAME'] = '/gptapi/public/index.php';
+        $_SERVER['REQUEST_URI'] = '/gptapi/public/index.php';
+        assertSame('/', (new \App\Http\Request())->path());
+
+        // Per Rewrite: /gptapi/public/api/health
+        $_SERVER['REQUEST_URI'] = '/gptapi/public/api/health';
+        assertSame('/api/health', (new \App\Http\Request())->path());
+
+        // PATH_INFO-Stil: /gptapi/public/index.php/api/transcribe
+        $_SERVER['REQUEST_URI'] = '/gptapi/public/index.php/api/transcribe';
+        assertSame('/api/transcribe', (new \App\Http\Request())->path());
+    } finally {
+        $_SERVER = $serverBackup;
+    }
+});
+
 // ---------------------------------------------------------------- Router
 
 check('Router: registrierte Route wird aufgerufen', function (): void {
@@ -248,8 +283,8 @@ check('WebController: GET / liefert die UI-Seite', function (): void {
     $router->dispatch('GET', '/');
     $html = (string) ob_get_clean();
     assertTrue(str_contains($html, '<form'), 'UI sollte ein Formular enthalten');
-    assertTrue(str_contains($html, '/api/transcribe'), 'UI sollte den Transcribe-Endpunkt aufrufen');
-    assertTrue(str_contains($html, '/api/health'), 'UI sollte den Health-Endpunkt abfragen');
+    assertTrue(str_contains($html, 'api/transcribe'), 'UI sollte den Transcribe-Endpunkt aufrufen');
+    assertTrue(str_contains($html, 'api/health'), 'UI sollte den Health-Endpunkt abfragen');
 });
 
 // ---------------------------------------------------------------- Ergebnis

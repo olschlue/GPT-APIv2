@@ -14,9 +14,31 @@ final class Request
         return strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
     }
 
+    /**
+     * Liefert den App-relativen Pfad, z. B. "/api/transcribe".
+     * Funktioniert auch, wenn die App in einem Unterverzeichnis liegt
+     * (z. B. https://host/gptapi/public/index.php oder .../api/health).
+     */
     public function path(): string
     {
         $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+
+        $scriptName = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+        if ($scriptName !== '' && str_starts_with($path, $scriptName)) {
+            // Aufruf über die index.php selbst, ggf. mit PATH_INFO:
+            // /base/public/index.php oder /base/public/index.php/api/...
+            $path = substr($path, strlen($scriptName));
+        } else {
+            $base = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+            if ($base !== '' && $base !== '.' && $base !== '/') {
+                if ($path === $base) {
+                    $path = '/';
+                } elseif (str_starts_with($path, $base . '/')) {
+                    $path = substr($path, strlen($base));
+                }
+            }
+        }
+
         $path = rtrim($path, '/');
         return $path === '' ? '/' : $path;
     }

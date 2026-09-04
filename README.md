@@ -62,6 +62,10 @@ php -d upload_max_filesize=220M -d post_max_size=220M -S 127.0.0.1:8080 -t publi
 
 Die `php -d`-Flags müssen größer als `MAX_UPLOAD_MB` sein, sonst blockiert PHP den Upload vor der eigenen Validierung.
 
+### Apache / XAMPP (Unterverzeichnis)
+
+Die App funktioniert auch, wenn das Projekt in einem Unterverzeichnis liegt, z. B. `htdocs/gptapi/`. Aufruf dann über `http://localhost/gptapi/public/` bzw. `.../public/index.php`. Voraussetzung: `mod_rewrite` ist aktiv und `.htaccess` wird ausgewertet (`AllowOverride All`). Der App-Pfad wird relativ zum Skript-Verzeichnis aufgelöst, die Endpunkte lauten dann z. B. `http://localhost/gptapi/public/api/health`.
+
 ## Tests
 
 ```bash
