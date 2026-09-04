@@ -320,6 +320,27 @@ check('Request: erkennt von PHP verworfenen Body (post_max_size)', function (): 
 
 // ---------------------------------------------------------------- OpenAIClient (Sprecher-Formatierung)
 
+check('TranscribeController: Zeitstempel aus Dateiname parsen', function (): void {
+    $controller = new \App\Controller\TranscribeController(
+        Config::load(APP_ROOT),
+        new \App\Http\Request()
+    );
+    $reflection = new ReflectionClass($controller);
+    $method = $reflection->getMethod('parseStartTimeFromFilename');
+    $method->setAccessible(true);
+
+    // Gültige Formate
+    assertSame('2026-09-03 11:30:10', $method->invoke($controller, '2026Sep03-113010-Rec46.mp3'));
+    assertSame('2026-09-03 11:30:10', $method->invoke($controller, '2026Sep03-113010-Rec46 - Kopie.mp3'));
+    assertSame('2025-12-25 23:59:59', $method->invoke($controller, '2025Dec25-235959-Rec99.mp3'));
+    assertSame('2026-01-01 00:00:00', $method->invoke($controller, '2026Jan01-000000-Rec01.mp3'));
+
+    // Ungültige Formate
+    assertSame(null, $method->invoke($controller, 'meeting.mp3'));
+    assertSame(null, $method->invoke($controller, '2026-09-03.mp3'));
+    assertSame(null, $method->invoke($controller, '2026Xyz03-113010.mp3'));
+});
+
 // Datenbank-Tests nur ausführen, wenn DB verfügbar ist
 $dbAvailable = false;
 try {

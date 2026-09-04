@@ -139,12 +139,18 @@ final class TranscribeController
         // Titel = Original-Dateiname (ohne Pfad, mit Extension)
         $title = $upload['original_name'] ?? 'Unbekannt';
 
+        // Start-Zeit aus Dateiname parsen (Format: 2026Sep03-113010-Rec46.mp3)
+        $startedAt = $this->parseStartTimeFromFilename($title);
+        if ($startedAt === null) {
+            // Fallback: jetzt minus Dauer
+            $startedAt = date('Y-m-d H:i:s', time() - (int) $result['duration']);
+        }
+
         // Kunde aus Transkript versuchen zu extrahieren (einfache Heuristik)
         $customer = $this->extractCustomer($response['transcript']);
 
         $now = date('Y-m-d H:i:s');
-        $startedAt = date('Y-m-d H:i:s', time() - (int) $result['duration']);
-        $endedAt = $now;
+        $endedAt = date('Y-m-d H:i:s', strtotime($startedAt) + (int) $result['duration']);
 
         $data = [
             'krisp_meeting_id' => $krispMeetingId,
@@ -170,6 +176,41 @@ final class TranscribeController
         ];
 
         return $repository->create($data);
+    }
+
+    /**
+     * Parst den Zeitstempel aus dem Dateinamen.
+     * Format: 2026Sep03-113010-Rec46.mp3 → 2026-09-03 11:30:10
+     *
+     * @return string|null MySQL DATETIME oder null bei Fehler
+     */
+    private function parseStartTimeFromFilename(string $filename): ?string
+    {
+        // Pattern: YYYYMmmDD-HHMMSS (z. B. 2026Sep03-113010)
+        if (preg_match('/(\d{4})([A-Za-z]{3})(\d{2})-(\d{6})/', $filename, $matches)) {
+            [, $year, $monthName, $day, $time] = $matches;
+
+            // Monatsname zu Nummer konvertieren
+            $months = [
+                'Jan' => '01', 'Feb' => '02', 'Mar' => '03', 'Apr' => '04',
+                'May' => '05', 'Jun' => '06', 'Jul' => '07', 'Aug' => '08',
+                'Sep' => '09', 'Oct' => '10', 'Nov' => '11', 'Dec' => '12',
+            ];
+
+            $month = $months[$monthName] ?? null;
+            if ($month === null) {
+                return null;
+            }
+
+            // Zeit formatieren: HHMMSS → HH:MM:SS
+            $hour = substr($time, 0, 2);
+            $minute = substr($time, 2, 2);
+            $second = substr($time, 4, 2);
+
+            return sprintf('%s-%s-%s %s:%s:%s', $year, $month, $day, $hour, $minute, $second);
+        }
+
+        return null;
     }
 
     /**
