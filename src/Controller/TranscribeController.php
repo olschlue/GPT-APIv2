@@ -102,6 +102,17 @@ final class TranscribeController
             $response['_warning'] = $upload['mime_warning'];
         }
 
+        // Debug-Infos immer sammeln
+        $mysqliLoaded = extension_loaded('mysqli');
+        $dbConfig = require APP_ROOT . '/config/database.php';
+        $response['_meta']['db_debug'] = [
+            'mysqli_extension' => $mysqliLoaded ? 'geladen' : 'NICHT GELADEN',
+            'db_host' => $dbConfig['host'],
+            'db_name' => $dbConfig['name'],
+            'db_user' => $dbConfig['user'],
+            'db_pass_set' => $dbConfig['pass'] !== '' ? 'ja' : 'NEIN',
+        ];
+
         // In Datenbank speichern (wenn verfügbar)
         if (Database::isAvailable()) {
             try {
@@ -117,17 +128,7 @@ final class TranscribeController
             }
         } else {
             $response['_meta']['saved_to_db'] = false;
-            // Detaillierte Diagnose
-            $mysqliLoaded = extension_loaded('mysqli');
-            $dbConfig = require APP_ROOT . '/config/database.php';
             $response['_meta']['db_note'] = 'Datenbank nicht verfügbar';
-            $response['_meta']['db_debug'] = [
-                'mysqli_extension' => $mysqliLoaded ? 'geladen' : 'NICHT GELADEN',
-                'db_host' => $dbConfig['host'],
-                'db_name' => $dbConfig['name'],
-                'db_user' => $dbConfig['user'],
-                'db_pass_set' => $dbConfig['pass'] !== '' ? 'ja' : 'NEIN',
-            ];
         }
 
         // Original-Datei-Pfad in Response aufnehmen
