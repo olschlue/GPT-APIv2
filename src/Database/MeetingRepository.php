@@ -26,15 +26,6 @@ final class MeetingRepository
      */
     public function create(array $data): int
     {
-        // Debug: Spalten-Typen prüfen
-        $columnTypes = $this->getColumnTypes();
-        if (isset($columnTypes['recording']) && str_contains(strtolower($columnTypes['recording']), 'json')) {
-            throw new \RuntimeException(
-                'Spalte "recording" ist als JSON definiert, sollte aber VARCHAR sein. '
-                . 'Bitte Schema mit "mysql -u krisp -p krisp < database/schema.sql" neu importieren.'
-            );
-        }
-
         $stmt = $this->db->prepare("
             INSERT INTO krisp_meetings (
                 krisp_meeting_id,
@@ -169,26 +160,5 @@ final class MeetingRepository
         $stmt->close();
 
         return $exists;
-    }
-
-    /**
-     * Ermittelt die Spalten-Typen der Tabelle.
-     *
-     * @return array<string, string> Spaltenname => Typ
-     */
-    private function getColumnTypes(): array
-    {
-        $result = $this->db->query('SHOW COLUMNS FROM krisp_meetings');
-        if ($result === false) {
-            return [];
-        }
-
-        $types = [];
-        while ($row = $result->fetch_assoc()) {
-            $types[$row['Field']] = $row['Type'];
-        }
-        $result->free();
-
-        return $types;
     }
 }

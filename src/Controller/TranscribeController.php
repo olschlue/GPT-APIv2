@@ -165,6 +165,16 @@ final class TranscribeController
         $now = date('Y-m-d H:i:s');
         $endedAt = date('Y-m-d H:i:s', strtotime($startedAt) + (int) $result['duration']);
 
+        // Recording URL: relativer Pfad zur Datei in uploads
+        $recordingUrl = null;
+        if (isset($upload['path']) && str_contains($upload['path'], 'storage/uploads/')) {
+            // Extrahiere relativen Pfad ab storage/uploads/
+            $relativePath = substr($upload['path'], strpos($upload['path'], 'storage/uploads/'));
+            // Baue URL: /gptapi/storage/uploads/datei.mp3
+            $basePath = dirname($_SERVER['SCRIPT_NAME'] ?? '', 2); // von public/index.php zu /gptapi
+            $recordingUrl = rtrim($basePath, '/') . '/' . $relativePath;
+        }
+
         $data = [
             'krisp_meeting_id' => $krispMeetingId,
             'title' => $title,
@@ -180,8 +190,8 @@ final class TranscribeController
             'outline' => json_encode($response['outline'], JSON_UNESCAPED_UNICODE),
             'action_items' => json_encode($response['tasks'], JSON_UNESCAPED_UNICODE),
             'key_points' => json_encode($response['decisions'], JSON_UNESCAPED_UNICODE),
-            'recording' => $upload['original_name'] ?? null,
-            'recording_url' => null,
+            'recording' => $upload['original_name'] ?? null, // Nur Dateiname
+            'recording_url' => $recordingUrl, // URL zur Datei
             'summary_updated_at' => $now,
             'last_event_type' => 'transcription.completed',
             'last_event_id' => null,
