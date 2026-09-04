@@ -235,6 +235,16 @@ check('Request: Pfad-Auflösung in Unterverzeichnis-Installation', function (): 
         // PATH_INFO-Stil: /gptapi/public/index.php/api/transcribe
         $_SERVER['REQUEST_URI'] = '/gptapi/public/index.php/api/transcribe';
         assertSame('/api/transcribe', (new \App\Http\Request())->path());
+
+        // Regex-Fallback: Skriptname mitten im Pfad, SCRIPT_NAME stimmt nicht
+        $_SERVER['SCRIPT_NAME'] = '/gptapi/public/api/health'; // kaputt/ungewöhnlich
+        $_SERVER['REQUEST_URI'] = '/gptapi/public/index.php/api/health';
+        assertSame('/api/health', (new \App\Http\Request())->path());
+
+        // Regex-Fallback: URI ohne Script-Name-Korrespondenz
+        $_SERVER['SCRIPT_NAME'] = '/irgendwas/anderes.php';
+        $_SERVER['REQUEST_URI'] = '/gptapi/public/index.php/api/transcribe';
+        assertSame('/api/transcribe', (new \App\Http\Request())->path());
     } finally {
         $_SERVER = $serverBackup;
     }

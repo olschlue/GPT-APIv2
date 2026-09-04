@@ -40,6 +40,14 @@ final class Request
         }
 
         $path = rtrim($path, '/');
+
+        // Fallback: irgendwo im Pfad steckt noch ein Skriptname (*.php) –
+        // z. B. /gptapi/public/index.php/api/health bei exotischen Rewrite-Setups.
+        if (preg_match('~\.php(?=/|$)~i', $path)) {
+            $path = (string) preg_replace('~^.*?\.php~i', '', $path);
+            $path = rtrim($path, '/');
+        }
+
         return $path === '' ? '/' : $path;
     }
 

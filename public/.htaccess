@@ -1,4 +1,9 @@
 RewriteEngine On
+
+# MultiViews verhindern (Content-Negotiation würde sonst /api/health auf /api.php o. ä. mappen)
+Options -MultiViews
+
+# Alles, was keine echte Datei/kein echtes Verzeichnis ist, an den Front Controller geben
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]

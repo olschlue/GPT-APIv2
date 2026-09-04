@@ -66,6 +66,16 @@ Die `php -d`-Flags müssen größer als `MAX_UPLOAD_MB` sein, sonst blockiert PH
 
 Die App funktioniert auch, wenn das Projekt in einem Unterverzeichnis liegt, z. B. `htdocs/gptapi/`. Aufruf dann über `http://localhost/gptapi/public/` bzw. `.../public/index.php`. Voraussetzung: `mod_rewrite` ist aktiv und `.htaccess` wird ausgewertet (`AllowOverride All`). Der App-Pfad wird relativ zum Skript-Verzeichnis aufgelöst, die Endpunkte lauten dann z. B. `http://localhost/gptapi/public/api/health`.
 
+### Apache / XAMPP ohne mod_rewrite
+
+Wenn Rewrite-Regeln nicht greifen (z. B. `AllowOverride None`), funktionieren die PATH_INFO-URLs:
+
+- `http://localhost/gptapi/public/index.php` → Web-UI
+- `http://localhost/gptapi/public/index.php/api/health` → Health-Check
+- `http://localhost/gptapi/public/index.php/api/transcribe` → Transkription (POST)
+
+Die Web-UI ruft die API automatisch über die jeweils passende URL auf.
+
 ## Tests
 
 ```bash
