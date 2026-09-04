@@ -316,6 +316,29 @@ check('Request: erkennt von PHP verworfenen Body (post_max_size)', function (): 
     }
 });
 
+// ---------------------------------------------------------------- OpenAIClient (Sprecher-Formatierung)
+
+check('OpenAIClient: Sprecher-Formatierung aus Segmenten', function (): void {
+    $client = new \App\OpenAI\OpenAIClient('test-key');
+    $reflection = new ReflectionClass($client);
+    $method = $reflection->getMethod('formatWithSpeakers');
+    $method->setAccessible(true);
+
+    $segments = [
+        ['speaker' => 'Sprecher 1', 'text' => 'Hallo zusammen.'],
+        ['speaker' => 'Sprecher 1', 'text' => 'Schön dass ihr da seid.'],
+        ['speaker' => 'Sprecher 2', 'text' => 'Danke für die Einladung.'],
+        ['speaker' => 'Sprecher 1', 'text' => 'Fangen wir an.'],
+    ];
+
+    $result = $method->invoke($client, $segments);
+
+    assertTrue(str_contains($result, '**Sprecher 1:**'), 'Sprecher 1 sollte markiert sein');
+    assertTrue(str_contains($result, '**Sprecher 2:**'), 'Sprecher 2 sollte markiert sein');
+    assertTrue(str_contains($result, 'Hallo zusammen.'), 'Text sollte enthalten sein');
+    assertTrue(substr_count($result, '**Sprecher 1:**') === 2, 'Sprecher 1 sollte 2x markiert sein (Wechsel)');
+});
+
 check('Router: registrierte Route wird aufgerufen', function (): void {
     $router = new Router();
     $called = false;

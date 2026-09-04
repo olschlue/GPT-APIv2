@@ -41,7 +41,8 @@ final class OpenAIClient
         ];
 
         // Diarize-Modelle benötigen zwingend eine chunking_strategy
-        if (str_contains($this->transcribeModel, 'diarize')) {
+        $isDiarize = str_contains($this->transcribeModel, 'diarize');
+        if ($isDiarize) {
             $postFields['chunking_strategy'] = 'auto';
         }
 
@@ -68,7 +69,43 @@ final class OpenAIClient
             throw new ApiException('openai_invalid_response', 'Unerwartete Antwort des Transkriptions-Endpunkts.', 502);
         }
 
+        // Bei Diarize-Modellen: Sprecher-Segmente ins Transkript einbauen
+        if ($isDiarize && isset($data['segments']) && is_array($data['segments'])) {
+            return $this->formatWithSpeakers($data['segments']);
+        }
+
         return $data['text'];
+    }
+
+    /**
+     * Formatiert Segmente mit Sprecher-Labels als lesbares Transkript.
+     *
+     * @param array<int, array<string, mixed>> $segments
+     */
+    private function formatWithSpeakers(array $segments): string
+    {
+        $lines = [];
+        $lastSpeaker = null;
+
+        foreach ($segments as $segment) {
+            $speaker = $segment['speaker'] ?? 'Sprecher';
+            $text = trim((string) ($segment['text'] ?? ''));
+
+            if ($text === '') {
+                continue;
+            }
+
+            // Sprecherwechsel markieren
+            if ($speaker !== $lastSpeaker) {
+                $lines[] = '';
+                $lines[] = "**{$speaker}:**";
+                $lastSpeaker = $speaker;
+            }
+
+            $lines[] = $text;
+        }
+
+        return trim(implode("\n", $lines));
     }
 
     /**

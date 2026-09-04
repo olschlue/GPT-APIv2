@@ -12,7 +12,15 @@ PHP-API, die Audio-Dateien (MP3, M4A, WAV, WEBM) per Upload entgegennimmt, mit d
 
 **Lange Dateien (> 23 Minuten):** Die App zerlegt automatisch Dateien über 20 Minuten in Chunks, transkribiert einzeln und führt zusammen. Voraussetzung: FFmpeg ist installiert (`apt install ffmpeg` auf Ubuntu/Debian).
 
-**Sprechererkennung:** Mit `OPENAI_TRANSCRIBE_MODEL=gpt-4o-transcribe-diarize` in der `.env` werden Sprecher unterschieden (erfordert `chunking_strategy=auto`, wird automatisch gesendet).
+**Sprechererkennung:** Mit `OPENAI_TRANSCRIBE_MODEL=gpt-4o-transcribe-diarize` in der `.env` werden Sprecher unterschieden (erfordert `chunking_strategy=auto`, wird automatisch gesendet). Das Transkript enthält dann Sprecher-Labels im Format:
+
+```
+**Sprecher 1:**
+Hallo zusammen, schön dass ihr da seid.
+
+**Sprecher 2:**
+Danke für die Einladung.
+```
 
 ### Beispiel: Transkription
 
