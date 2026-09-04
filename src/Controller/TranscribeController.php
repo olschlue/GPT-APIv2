@@ -79,10 +79,8 @@ final class TranscribeController
             $transcript = $result['transcript'];
             $analysis = (new TranscriptAnalyzer($client))->analyze($transcript);
         } finally {
-            // Temporäre Datei in jedem Fall wieder entfernen
-            if (is_file($upload['path'])) {
-                unlink($upload['path']);
-            }
+            // Nur temporäre Chunk-Dateien löschen, Original behalten
+            // (Chunks werden bereits in ChunkedTranscriber::transcribe() gelöscht)
         }
 
         $response = [
@@ -120,6 +118,9 @@ final class TranscribeController
             $response['_meta']['saved_to_db'] = false;
             $response['_meta']['db_note'] = 'Datenbank nicht konfiguriert oder nicht erreichbar';
         }
+
+        // Original-Datei-Pfad in Response aufnehmen
+        $response['_meta']['file_path'] = $upload['path'];
 
         Response::json($response);
     }

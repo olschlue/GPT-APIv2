@@ -51,8 +51,17 @@ final class AudioUploadHandler
         }
 
         $extension = UploadRules::extensionOf($originalName);
-        $target = rtrim($this->uploadDir, '/')
-            . '/' . date('Ymd-His') . '-' . bin2hex(random_bytes(8)) . '.' . $extension;
+        // Original-Dateiname behalten (wichtig für Zeitstempel-Parsing)
+        $basename = pathinfo($originalName, PATHINFO_FILENAME);
+        $basename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $basename); // Sicherheit: nur erlaubte Zeichen
+        $target = rtrim($this->uploadDir, '/') . '/' . $basename . '.' . $extension;
+
+        // Bei Kollision: Suffix anhängen
+        $counter = 1;
+        while (is_file($target)) {
+            $target = rtrim($this->uploadDir, '/') . '/' . $basename . '_' . $counter . '.' . $extension;
+            $counter++;
+        }
 
         $tmpName = (string) $file['tmp_name'];
         // Kaskade: move_uploaded_file (echter HTTP-Upload) → rename (Tests) → copy
