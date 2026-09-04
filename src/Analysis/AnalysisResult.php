@@ -95,7 +95,7 @@ final class AnalysisResult
         return $outline;
     }
 
-    /** @return array<int, array{task: string, owner: string, deadline: string, priority: string}> */
+    /** @return array<int, array{id: string, title: string, assignee: null|array, due_date: null|string, completed: bool}> */
     private static function tasks(mixed $items): array
     {
         $tasks = [];
@@ -106,15 +106,33 @@ final class AnalysisResult
             if (!is_array($item)) {
                 continue;
             }
-            $task = self::str($item, 'task');
-            if ($task === '') {
+
+            $title = self::str($item, 'title');
+            if ($title === '') {
                 continue;
             }
+
+            // ID generieren, falls nicht vorhanden
+            $id = $item['id'] ?? bin2hex(random_bytes(16));
+
+            // assignee: null oder Objekt (wird vom externen System befüllt)
+            $assignee = null;
+            if (isset($item['assignee']) && is_array($item['assignee'])) {
+                $assignee = $item['assignee'];
+            }
+
+            // due_date: ISO-8601-String oder null
+            $dueDate = null;
+            if (isset($item['due_date']) && is_string($item['due_date']) && $item['due_date'] !== '') {
+                $dueDate = $item['due_date'];
+            }
+
             $tasks[] = [
-                'task' => $task,
-                'owner' => self::str($item, 'owner'),
-                'deadline' => self::str($item, 'deadline'),
-                'priority' => self::priority($item['priority'] ?? ''),
+                'id' => (string) $id,
+                'title' => $title,
+                'assignee' => $assignee,
+                'due_date' => $dueDate,
+                'completed' => false,
             ];
         }
         return $tasks;

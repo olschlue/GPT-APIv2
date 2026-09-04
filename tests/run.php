@@ -122,7 +122,15 @@ check('AnalysisResult: vollständige Antwort wird übernommen', function (): voi
             ['id' => '01', 'title' => '**Budget**', 'description' => ''],
             ['id' => '02', 'description' => 'Kosten steigen'],
         ],
-        'tasks' => [['task' => 'Report erstellen', 'owner' => 'Anna', 'deadline' => '2026-09-10', 'priority' => 'high']],
+        'tasks' => [
+            [
+                'id' => 'task01',
+                'title' => 'Oliver, Report erstellen',
+                'assignee' => null,
+                'due_date' => '2026-09-10T00:00:00.000Z',
+                'completed' => false,
+            ],
+        ],
         'decisions' => ['Launch im Oktober'],
         'extra' => 'wird verworfen',
     ]));
@@ -133,18 +141,12 @@ check('AnalysisResult: vollständige Antwort wird übernommen', function (): voi
     assertSame('02', $result->outline[1]['id']);
     assertSame('Kosten steigen', $result->outline[1]['description']);
     assertTrue(!isset($result->outline[1]['title']), 'Zweiter Eintrag sollte kein title haben');
-    assertSame('Anna', $result->tasks[0]['owner']);
-    assertSame('high', $result->tasks[0]['priority']);
+    assertSame('task01', $result->tasks[0]['id']);
+    assertSame('Oliver, Report erstellen', $result->tasks[0]['title']);
+    assertSame(null, $result->tasks[0]['assignee']);
+    assertSame('2026-09-10T00:00:00.000Z', $result->tasks[0]['due_date']);
+    assertSame(false, $result->tasks[0]['completed']);
     assertSame(['Launch im Oktober'], $result->decisions);
-});
-
-check('AnalysisResult: ungültige Priorität → medium', function (): void {
-    $result = AnalysisResult::fromArray([
-        'tasks' => [['task' => 'X', 'priority' => 'super-wichtig']],
-    ]);
-    assertSame('medium', $result->tasks[0]['priority']);
-    assertSame('', $result->tasks[0]['owner']);
-    assertSame('', $result->tasks[0]['deadline']);
 });
 
 check('AnalysisResult: fehlende Felder → Defaults', function (): void {
@@ -153,6 +155,18 @@ check('AnalysisResult: fehlende Felder → Defaults', function (): void {
     assertSame([], $result->outline);
     assertSame([], $result->tasks);
     assertSame([], $result->decisions);
+});
+
+check('AnalysisResult: task ohne title wird übersprungen', function (): void {
+    $result = AnalysisResult::fromArray([
+        'tasks' => [
+            ['id' => 'x'], // kein title
+            ['id' => 'task02', 'title' => 'Gültig', 'assignee' => null, 'due_date' => null, 'completed' => false],
+        ],
+    ]);
+    assertSame(1, count($result->tasks));
+    assertSame('Gültig', $result->tasks[0]['title']);
+    assertSame(false, $result->tasks[0]['completed']);
 });
 
 check('AnalysisResult: Code-Fences werden entfernt', function (): void {

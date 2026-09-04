@@ -24,7 +24,13 @@ Antworte ausschließlich mit einem validen JSON-Objekt mit exakt diesen Feldern:
     {"id": "eindeutige-id", "description": "Weiterer Detailpunkt"}
   ],
   "tasks": [
-    {"task": "konkrete Aufgabe", "owner": "verantwortliche Person oder leer", "deadline": "ISO-Datum oder leer", "priority": "low|medium|high"}
+    {
+      "id": "eindeutige-id",
+      "title": "Aufgabenbeschreibung (mit Sprecher-Name wenn bekannt, z. B. 'Oliver, ...' oder '{{Speaker_2}}, ...')",
+      "assignee": null,
+      "due_date": null,
+      "completed": false
+    }
   ],
   "decisions": [
     "im Gespräch getroffene Entscheidung"
@@ -36,6 +42,7 @@ Regeln:
 - Schreibe in der Sprache des Transkripts.
 - outline ist ein FLACHES Array: Themenblöcke haben title (mit **...**) und leere description, Detailpunkte haben nur description.
 - Jeder outline-Eintrag braucht eine eindeutige id (z. B. fortlaufende Nummer oder Hash).
+- tasks: id ist eindeutig, title enthält Sprecher-Name (aus Transkript) oder Platzhalter {{Speaker_X}}, assignee ist immer null (wird später von externem System befüllt), due_date ist ISO-8601 mit Zeitzone oder null, completed ist immer false.
 - Wenn es keine Tasks oder Decisions gibt, liefere leere Arrays.
 PROMPT;
 
