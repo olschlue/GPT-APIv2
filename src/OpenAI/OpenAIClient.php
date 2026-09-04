@@ -53,6 +53,7 @@ final class OpenAIClient
             'Größe' => round(filesize($filePath) / 1048576, 1) . ' MB',
             'MIME' => $mimeType,
             'Modell' => $this->transcribeModel,
+            'Tipp' => 'Datei ggf. mit VLC/Audacity als MP3 neu exportieren',
         ]);
         $data = json_decode($body, true);
 

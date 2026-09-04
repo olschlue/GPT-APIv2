@@ -71,11 +71,56 @@ final class AudioUploadHandler
             unlink($tmpName);
         }
 
+        // MIME-Type aus dem Dateiinhalt ermitteln (nicht nur Extension)
+        $detectedMime = $this->detectMimeType($target);
+        $extensionMime = UploadRules::mimeFor($originalName);
+        $finalMime = $extensionMime;
+        $mimeWarning = null;
+
+        // Bei Abweichung: erkannten Typ bevorzugen, wenn er plausibel ist
+        if ($detectedMime !== null && $detectedMime !== $extensionMime) {
+            $plausible = match ($detectedMime) {
+                'audio/mpeg', 'audio/mp3' => 'audio/mpeg',
+                'audio/mp4', 'video/mp4' => 'audio/mp4', // M4A wird oft als video/mp4 erkannt
+                'audio/x-wav', 'audio/wav', 'audio/wave' => 'audio/wav',
+                'audio/webm', 'video/webm' => 'audio/webm',
+                default => null,
+            };
+            if ($plausible !== null && $plausible !== $extensionMime) {
+                $finalMime = $plausible;
+                $mimeWarning = sprintf(
+                    'Extension sagt %s, aber Datei ist %s – verwende %s',
+                    $extensionMime,
+                    $detectedMime,
+                    $finalMime
+                );
+            }
+        }
+
         return [
             'path' => $target,
             'original_name' => $originalName,
-            'mime' => UploadRules::mimeFor($originalName),
+            'mime' => $finalMime,
             'size' => $size,
+            'mime_detected' => $detectedMime,
+            'mime_warning' => $mimeWarning,
         ];
+    }
+
+    /**
+     * Ermittelt den MIME-Type aus dem Dateiinhalt (nicht der Extension).
+     */
+    private function detectMimeType(string $path): ?string
+    {
+        if (!function_exists('finfo_open')) {
+            return null;
+        }
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($finfo === false) {
+            return null;
+        }
+        $mime = finfo_file($finfo, $path);
+        finfo_close($finfo);
+        return is_string($mime) ? $mime : null;
     }
 }

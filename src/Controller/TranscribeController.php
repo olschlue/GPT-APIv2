@@ -75,12 +75,19 @@ final class TranscribeController
             }
         }
 
-        Response::json([
+        $response = [
             'transcript' => $transcript,
             'summary' => $analysis->summary,
             'outline' => $analysis->outline,
             'tasks' => $analysis->tasks,
             'decisions' => $analysis->decisions,
-        ]);
+        ];
+
+        // MIME-Warnung hinzufügen, wenn Extension und Inhalt abweichen
+        if (!empty($upload['mime_warning'])) {
+            $response['_warning'] = $upload['mime_warning'];
+        }
+
+        Response::json($response);
     }
 }
