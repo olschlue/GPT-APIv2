@@ -119,6 +119,16 @@ final class TranscribeController
             'db_pass_set' => $dbConfig['pass'] !== '' ? 'ja' : 'NEIN',
         ];
 
+        $parsedStartedAt = $this->parseStartTimeFromFilename($upload['original_name'] ?? '');
+        $response['_meta']['timezone_debug'] = [
+            'php_timezone_ini' => (string) ini_get('date.timezone'),
+            'php_timezone_active' => date_default_timezone_get(),
+            'php_now' => date('Y-m-d H:i:s'),
+            'original_filename' => $upload['original_name'] ?? null,
+            'filename_pattern_matched' => $parsedStartedAt !== null,
+            'parsed_started_at' => $parsedStartedAt,
+        ];
+
         // In Datenbank speichern (wenn verfügbar)
         if (Database::isAvailable()) {
             try {
