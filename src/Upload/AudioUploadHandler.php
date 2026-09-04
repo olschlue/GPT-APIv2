@@ -44,7 +44,10 @@ final class AudioUploadHandler
         }
 
         if (!is_dir($this->uploadDir) && !mkdir($this->uploadDir, 0775, true) && !is_dir($this->uploadDir)) {
-            throw new ApiException('storage_unavailable', 'Upload-Verzeichnis ist nicht verfügbar.', 500);
+            throw new ApiException('storage_unavailable', "Upload-Verzeichnis kann nicht angelegt werden: {$this->uploadDir}", 500);
+        }
+        if (!is_writable($this->uploadDir)) {
+            throw new ApiException('storage_unavailable', "Upload-Verzeichnis ist nicht beschreibbar: {$this->uploadDir}", 500);
         }
 
         $extension = UploadRules::extensionOf($originalName);
@@ -52,9 +55,20 @@ final class AudioUploadHandler
             . '/' . date('Ymd-His') . '-' . bin2hex(random_bytes(8)) . '.' . $extension;
 
         $tmpName = (string) $file['tmp_name'];
-        // rename() als Fallback, damit der Handler auch ohne echten HTTP-Upload testbar bleibt.
-        if (!move_uploaded_file($tmpName, $target) && !rename($tmpName, $target)) {
-            throw new ApiException('storage_failed', 'Die Datei konnte nicht gespeichert werden.', 500);
+        // Kaskade: move_uploaded_file (echter HTTP-Upload) → rename (Tests) → copy
+        if (!move_uploaded_file($tmpName, $target) && !rename($tmpName, $target) && !copy($tmpName, $target)) {
+            throw new ApiException(
+                'storage_failed',
+                'Datei konnte nicht gespeichert werden. tmp: ' . $tmpName
+                    . (is_file($tmpName) ? ' (existiert)' : ' (existiert NICHT)')
+                    . ' → Ziel: ' . $target
+                    . ' | Verzeichnis beschreibbar: ' . (is_writable($this->uploadDir) ? 'ja' : 'nein'),
+                500
+            );
+        }
+        // bei copy() bleibt die tmp-Datei liegen – wegräumen
+        if (is_file($tmpName) && $tmpName !== $target && !is_uploaded_file($tmpName)) {
+            unlink($tmpName);
         }
 
         return [
