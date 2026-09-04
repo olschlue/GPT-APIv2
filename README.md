@@ -64,6 +64,18 @@ sudo apt install ffmpeg
 # Download: https://ffmpeg.org/download.html
 ```
 
+**Datenbank (optional):** Ergebnisse in MySQL/MariaDB speichern:
+```bash
+# Schema importieren
+mysql -u krisp -p krisp < database/schema.sql
+
+# Zugangsdaten in .env eintragen
+DB_HOST=localhost
+DB_NAME=krisp
+DB_USER=krisp
+DB_PASS=dein_passwort
+```
+
 Konfiguration (Priorität: Umgebungsvariable > `.env` > `config/config.php`):
 
 | Variable | Default | Beschreibung |
@@ -126,6 +138,42 @@ Der Health-Endpunkt zeigt die aktiven PHP-Limits unter `config.php_limits` an; d
 - Exotischer Codec oder ungewöhnliche Parameter (zu niedrige Bitrate, proprietäre Variante) → standardkonform neu kodieren
 
 Die Fehlermeldung enthält seit Version 917aff5 auch Dateiname, Größe und MIME-Typ zur Diagnose.
+
+### Datenbank-Integration
+
+Wenn eine Datenbank konfiguriert ist (siehe Setup), wird jedes Transkript automatisch in `krisp_meetings` gespeichert:
+
+- **Automatisch generiert:** `krisp_meeting_id` (Format: `upload_20260904_151530_a1b2c3d4`)
+- **Aus Analyse abgeleitet:** `title` (aus Summary), `customer` (Heuristik aus Transkript)
+- **Aus Transkription:** `transcript`, `duration_seconds`, `transcript_updated_at`
+- **Aus Analyse:** `summary`, `outline`, `action_items`, `key_points`, `summary_updated_at`
+- **Rohdaten:** `raw_payload` (komplette JSON-Response)
+
+Die Response enthält dann zusätzlich:
+```json
+{
+  "_meta": {
+    "duration_seconds": 1789.8,
+    "chunks_used": 2,
+    "meeting_id": 42,
+    "saved_to_db": true
+  }
+}
+```
+
+Falls die Datenbank nicht erreichbar ist, läuft die API trotzdem — `saved_to_db` ist dann `false` mit einem Hinweis.
+
+### Manuelle Meeting-ID
+
+Beim Upload kann optional eine eigene Meeting-ID als Form-Feld mitgegeben werden:
+
+```bash
+curl -X POST http://localhost/gptapi/public/index.php/api/transcribe \
+  -F "file=@meeting.mp3" \
+  -F "meeting_id=krisp_12345"
+```
+
+Existiert diese ID bereits, wird der Datensatz aktualisiert statt neu angelegt.
 
 ## Struktur
 

@@ -12,6 +12,8 @@ require dirname(__DIR__) . '/bootstrap.php';
 use App\Analysis\AnalysisResult;
 use App\Audio\AudioChunker;
 use App\Config;
+use App\Database\Database;
+use App\Database\MeetingRepository;
 use App\Http\ApiException;
 use App\Router;
 use App\Upload\AudioUploadHandler;
@@ -317,6 +319,29 @@ check('Request: erkennt von PHP verworfenen Body (post_max_size)', function (): 
 });
 
 // ---------------------------------------------------------------- OpenAIClient (Sprecher-Formatierung)
+
+// Datenbank-Tests nur ausführen, wenn DB verfügbar ist
+$dbAvailable = false;
+try {
+    $dbAvailable = Database::isAvailable();
+} catch (\Throwable) {
+    $dbAvailable = false;
+}
+
+if ($dbAvailable) {
+    check('Database: Verbindung herstellen', function (): void {
+        $db = Database::getConnection();
+        assertTrue($db instanceof \mysqli, 'Sollte mysqli-Instanz sein');
+        assertTrue($db->ping(), 'Verbindung sollte aktiv sein');
+    });
+
+    check('MeetingRepository: exists() für nicht-existente ID', function (): void {
+        $repo = new MeetingRepository();
+        assertTrue(!$repo->exists('test_nonexistent_' . bin2hex(random_bytes(8))), 'Sollte false für nicht-existente ID sein');
+    });
+} else {
+    echo "⚠ Datenbank nicht verfügbar – DB-Tests übersprungen\n";
+}
 
 check('OpenAIClient: Sprecher-Formatierung aus Segmenten', function (): void {
     $client = new \App\OpenAI\OpenAIClient('test-key');

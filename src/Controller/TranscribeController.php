@@ -8,6 +8,8 @@ use App\Analysis\TranscriptAnalyzer;
 use App\Audio\AudioChunker;
 use App\Audio\ChunkedTranscriber;
 use App\Config;
+use App\Database\Database;
+use App\Database\MeetingRepository;
 use App\Http\ApiException;
 use App\Http\Request;
 use App\Http\Response;
@@ -102,6 +104,96 @@ final class TranscribeController
             $response['_warning'] = $upload['mime_warning'];
         }
 
+        // In Datenbank speichern (wenn verfügbar)
+        if (Database::isAvailable()) {
+            try {
+                $repository = new MeetingRepository();
+                $meetingId = $this->saveMeeting($repository, $response, $upload, $result);
+                $response['_meta']['meeting_id'] = $meetingId;
+                $response['_meta']['saved_to_db'] = true;
+            } catch (\Throwable $e) {
+                // DB-Fehler nicht fatal machen, aber in Response vermerken
+                $response['_meta']['saved_to_db'] = false;
+                $response['_meta']['db_error'] = $e->getMessage();
+            }
+        } else {
+            $response['_meta']['saved_to_db'] = false;
+            $response['_meta']['db_note'] = 'Datenbank nicht konfiguriert oder nicht erreichbar';
+        }
+
         Response::json($response);
+    }
+
+    /**
+     * Speichert das Meeting in der Datenbank.
+     *
+     * @param array<string, mixed> $response
+     * @param array<string, mixed> $upload
+     * @param array<string, mixed> $result
+     */
+    private function saveMeeting(MeetingRepository $repository, array $response, array $upload, array $result): int
+    {
+        // Eindeutige Meeting-ID generieren (oder aus Request übernehmen, falls vorhanden)
+        $krispMeetingId = $_POST['meeting_id'] ?? 'upload_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4));
+
+        // Titel aus Summary ableiten (erste 100 Zeichen)
+        $title = mb_strimwidth($response['summary'] ?? 'Meeting-Transkription', 0, 100, '…');
+
+        // Kunde aus Transkript versuchen zu extrahieren (einfache Heuristik)
+        $customer = $this->extractCustomer($response['transcript']);
+
+        $now = date('Y-m-d H:i:s');
+        $startedAt = date('Y-m-d H:i:s', time() - (int) $result['duration']);
+        $endedAt = $now;
+
+        $data = [
+            'krisp_meeting_id' => $krispMeetingId,
+            'title' => $title,
+            'customer' => $customer,
+            'meeting_url' => null,
+            'started_at' => $startedAt,
+            'ended_at' => $endedAt,
+            'duration_seconds' => (int) round($result['duration']),
+            'transcript' => $response['transcript'],
+            'transcript_updated_at' => $now,
+            'summary' => $response['summary'],
+            'notes' => null, // könnte später aus Analyse erweitert werden
+            'outline' => json_encode($response['outline'], JSON_UNESCAPED_UNICODE),
+            'action_items' => json_encode($response['tasks'], JSON_UNESCAPED_UNICODE),
+            'key_points' => json_encode($response['decisions'], JSON_UNESCAPED_UNICODE),
+            'recording' => $upload['original_name'] ?? null,
+            'recording_url' => null,
+            'summary_updated_at' => $now,
+            'last_event_type' => 'transcription.completed',
+            'last_event_id' => null,
+            'raw_payload' => json_encode($response, JSON_UNESCAPED_UNICODE),
+        ];
+
+        // Update falls Meeting bereits existiert, sonst Insert
+        if ($repository->exists($krispMeetingId)) {
+            $repository->update($data);
+            // ID des bestehenden Datensatzes ermitteln
+            $stmt = Database::getConnection()->prepare('SELECT id FROM krisp_meetings WHERE krisp_meeting_id = ?');
+            $stmt->bind_param('s', $krispMeetingId);
+            $stmt->execute();
+            $stmt->bind_result($id);
+            $stmt->fetch();
+            $stmt->close();
+            return (int) $id;
+        }
+
+        return $repository->create($data);
+    }
+
+    /**
+     * Versucht, einen Kundennamen aus dem Transkript zu extrahieren.
+     */
+    private function extractCustomer(string $transcript): ?string
+    {
+        // Einfache Heuristik: Suche nach "Kunde", "Kunden", "Projekt", "Firma" etc.
+        if (preg_match('/(?:Kunde|Kunden|Projekt|Firma|Unternehmen|bei|mit)\s+([A-ZÄÖÜ][a-zäöüß]+(?:\s+[A-ZÄÖÜ][a-zäöüß]+)?)/u', $transcript, $matches)) {
+            return $matches[1];
+        }
+        return null;
     }
 }
