@@ -113,10 +113,21 @@ final class TranscribeController
                 // DB-Fehler nicht fatal machen, aber in Response vermerken
                 $response['_meta']['saved_to_db'] = false;
                 $response['_meta']['db_error'] = $e->getMessage();
+                $response['_meta']['db_trace'] = $e->getTraceAsString();
             }
         } else {
             $response['_meta']['saved_to_db'] = false;
-            $response['_meta']['db_note'] = 'Datenbank nicht konfiguriert oder nicht erreichbar';
+            // Detaillierte Diagnose
+            $mysqliLoaded = extension_loaded('mysqli');
+            $dbConfig = require APP_ROOT . '/config/database.php';
+            $response['_meta']['db_note'] = 'Datenbank nicht verfügbar';
+            $response['_meta']['db_debug'] = [
+                'mysqli_extension' => $mysqliLoaded ? 'geladen' : 'NICHT GELADEN',
+                'db_host' => $dbConfig['host'],
+                'db_name' => $dbConfig['name'],
+                'db_user' => $dbConfig['user'],
+                'db_pass_set' => $dbConfig['pass'] !== '' ? 'ja' : 'NEIN',
+            ];
         }
 
         // Original-Datei-Pfad in Response aufnehmen
