@@ -126,7 +126,8 @@ final class TranscribeController
             'php_now' => date('Y-m-d H:i:s'),
             'original_filename' => $upload['original_name'] ?? null,
             'filename_pattern_matched' => $parsedStartedAt !== null,
-            'parsed_started_at' => $parsedStartedAt,
+            'parsed_started_at_local' => $parsedStartedAt,
+            'parsed_started_at_utc' => $parsedStartedAt !== null ? $this->toUtc($parsedStartedAt) : null,
         ];
 
         // In Datenbank speichern (wenn verfügbar)
@@ -168,22 +169,24 @@ final class TranscribeController
         // Titel = Original-Dateiname (ohne Pfad, mit Extension)
         $title = $upload['original_name'] ?? 'Unbekannt';
 
-        // Start-Zeit aus Dateiname parsen (Format: 2026Sep03-113010-Rec46.mp3)
-        $startedAt = $this->parseStartTimeFromFilename($title);
-        if ($startedAt === null) {
+        // Start-Zeit aus Dateiname parsen (Format: 2026Sep03-113010-Rec46.mp3), lokale Zeit
+        $startedAtLocal = $this->parseStartTimeFromFilename($title);
+        if ($startedAtLocal === null) {
             // Fallback: jetzt minus Dauer
-            $startedAt = date('Y-m-d H:i:s', time() - (int) $result['duration']);
+            $startedAtLocal = date('Y-m-d H:i:s', time() - (int) $result['duration']);
         }
+        // In DB wird UTC erwartet (Oberfläche rechnet beim Anzeigen +Offset zurück)
+        $startedAt = $this->toUtc($startedAtLocal);
 
         // Kunde aus Transkript versuchen zu extrahieren (einfache Heuristik)
         $customer = $this->extractCustomer($response['transcript']);
 
         $now = date('Y-m-d H:i:s');
-        // startedAt ist bereits ein String im Format Y-m-d H:i:s (lokale Zeit)
-        // strtotime() würde Zeitzonen-Konvertierung machen, daher manuell rechnen
-        $startedTimestamp = strtotime($startedAt);
+        // startedAt ist bereits UTC; Addition ausschließlich in UTC vornehmen,
+        // damit die aktive PHP-Zeitzone (Europe/Berlin) die Rechnung nicht verfälscht
+        $startedTimestamp = (new \DateTimeImmutable($startedAt, new \DateTimeZone('UTC')))->getTimestamp();
         $endedTimestamp = $startedTimestamp + (int) $result['duration'];
-        $endedAt = date('Y-m-d H:i:s', $endedTimestamp);
+        $endedAt = gmdate('Y-m-d H:i:s', $endedTimestamp);
 
         // Recording URL: relativer Pfad zur Datei in uploads
         $recordingUrl = null;
@@ -266,6 +269,16 @@ final class TranscribeController
         }
 
         return null;
+    }
+
+    /**
+     * Konvertiert einen lokalen Zeit-String (Europe/Berlin) nach UTC für die DB-Speicherung.
+     * Die Oberfläche addiert beim Anzeigen den lokalen Offset zurück.
+     */
+    private function toUtc(string $localDateTime): string
+    {
+        $local = new \DateTimeImmutable($localDateTime, new \DateTimeZone('Europe/Berlin'));
+        return $local->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
     }
 
     /**

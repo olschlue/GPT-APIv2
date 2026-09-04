@@ -437,16 +437,31 @@ check('TranscribeController: Zeitstempel aus Dateiname parsen', function (): voi
     assertSame(null, $method->invoke($controller, '2026Xyz03-113010.mp3'));
 });
 
-check('TranscribeController: ended_at wird korrekt berechnet (keine Zeitzonen-Verschiebung)', function (): void {
-    // Simuliere: started_at = 11:00:00, duration = 3600s → ended_at sollte 12:00:00 sein
-    $startedAt = '2026-09-03 11:00:00';
+check('TranscribeController: toUtc konvertiert lokale Zeit (Europe/Berlin) nach UTC', function (): void {
+    $controller = new \App\Controller\TranscribeController(
+        Config::load(APP_ROOT),
+        new \App\Http\Request()
+    );
+    $reflection = new ReflectionClass($controller);
+    $method = $reflection->getMethod('toUtc');
+    $method->setAccessible(true);
+
+    // Sommerzeit (CEST, UTC+2): 11:54:09 lokal → 09:54:09 UTC
+    assertSame('2026-09-03 09:54:09', $method->invoke($controller, '2026-09-03 11:54:09'));
+    // Winterzeit (CET, UTC+1): 11:00:00 lokal → 10:00:00 UTC
+    assertSame('2026-01-15 10:00:00', $method->invoke($controller, '2026-01-15 11:00:00'));
+});
+
+check('TranscribeController: ended_at wird korrekt berechnet (UTC-Arithmetik, keine Zeitzonen-Verschiebung)', function (): void {
+    // startedAt liegt bereits als UTC vor (nach toUtc()); Addition rein in UTC
+    $startedAtUtc = '2026-09-03 09:00:00';
     $duration = 3600; // 1 Stunde
 
-    $startedTimestamp = strtotime($startedAt);
+    $startedTimestamp = (new DateTimeImmutable($startedAtUtc, new DateTimeZone('UTC')))->getTimestamp();
     $endedTimestamp = $startedTimestamp + $duration;
-    $endedAt = date('Y-m-d H:i:s', $endedTimestamp);
+    $endedAt = gmdate('Y-m-d H:i:s', $endedTimestamp);
 
-    assertSame('2026-09-03 12:00:00', $endedAt, 'ended_at sollte 12:00 sein, nicht 13:00 oder 14:00');
+    assertSame('2026-09-03 10:00:00', $endedAt, 'ended_at sollte 10:00 UTC sein');
 });
 
 // Datenbank-Tests nur ausführen, wenn DB verfügbar ist
