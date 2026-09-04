@@ -58,7 +58,7 @@ final class MeetingRepository
         }
 
         $stmt->bind_param(
-            'ssssssidssssssssssss',
+            'ssssssisssssssssssss',
             $data['krisp_meeting_id'],
             $data['title'],
             $data['customer'],

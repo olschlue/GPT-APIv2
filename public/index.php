@@ -14,6 +14,7 @@ use App\Router;
 require dirname(__DIR__) . '/bootstrap.php';
 
 $config = Config::load(APP_ROOT);
+date_default_timezone_set($config->getString('APP_TIMEZONE', 'Europe/Berlin'));
 $request = new Request();
 
 $router = new Router();

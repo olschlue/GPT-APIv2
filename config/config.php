@@ -23,4 +23,7 @@ return [
     // Uploads
     'MAX_UPLOAD_MB' => 200,
     'UPLOAD_DIR' => APP_ROOT . '/storage/uploads',
+
+    // Zeitzone für alle date()/strtotime()-Aufrufe (unabhängig vom Server-php.ini)
+    'APP_TIMEZONE' => 'Europe/Berlin',
 ];
