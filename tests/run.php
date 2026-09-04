@@ -182,7 +182,10 @@ check('AnalysisResult: ungültiges JSON → 502', function (): void {
 
 check('AnalysisResult: Einträge ohne title/description werden übersprungen', function (): void {
     $result = AnalysisResult::fromArray([
-        'tasks' => [['owner' => 'Niemand'], ['task' => 'Gültig']],
+        'tasks' => [
+            ['id' => 'x'], // kein title
+            ['id' => 'task02', 'title' => 'Gültig', 'assignee' => null, 'due_date' => null, 'completed' => false],
+        ],
         'outline' => [
             ['id' => '01'], // weder title noch description
             ['id' => '02', 'title' => '**Gültig**', 'description' => ''],
