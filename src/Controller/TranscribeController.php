@@ -39,6 +39,17 @@ final class TranscribeController
 
         $file = $this->request->file('file');
         if ($file === null) {
+            if ($this->request->bodyDroppedByPhp()) {
+                throw new ApiException(
+                    'upload_blocked_by_php',
+                    sprintf(
+                        'PHP hat den Upload verworfen, weil er das php.ini-Limit übersteigt (post_max_size: %s, upload_max_filesize: %s). Werte in der php.ini erhöhen und Apache neu starten.',
+                        (string) ini_get('post_max_size'),
+                        (string) ini_get('upload_max_filesize'),
+                    ),
+                    413
+                );
+            }
             throw new ApiException('file_missing', 'Multipart-Formdata-Feld "file" fehlt.', 400);
         }
 

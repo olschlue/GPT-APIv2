@@ -82,7 +82,7 @@
 
     <div class="panel">
         <span id="health" class="badge">Status wird geladen …</span>
-        <span class="badge">Limit: <?= (int) $maxUploadMb ?> MB</span>
+        <span class="badge" id="limit-badge">Limit: <?= (int) $maxUploadMb ?> MB</span>
         <span class="badge">Formate: MP3, M4A, WAV, WEBM</span>
     </div>
 
@@ -92,6 +92,7 @@
                 <input type="file" id="file" name="file" accept=".mp3,.m4a,.wav,.webm,audio/*">
                 <strong>Audiodatei auswählen</strong> oder hierher ziehen
                 <div class="hint">MP3, M4A, WAV oder WEBM – max. <?= (int) $maxUploadMb ?> MB</div>
+                <div class="hint" id="limit-hint"></div>
             </label>
             <div class="fileinfo" id="fileinfo"></div>
             <div style="margin-top: 1rem;">
@@ -126,8 +127,8 @@
 </main>
 
 <script>
-const MAX_BYTES = <?= (int) $maxUploadMb ?> * 1024 * 1024;
 const ALLOWED = ['mp3', 'm4a', 'wav', 'webm'];
+let maxBytes = <?= (int) $maxUploadMb ?> * 1024 * 1024; // sinkt ggf. durch php.ini-Limits
 
 const $ = (id) => document.getElementById(id);
 const fileInput = $('file'), dropzone = $('dropzone'), submitBtn = $('submit-btn');
@@ -135,6 +136,16 @@ const fileInput = $('file'), dropzone = $('dropzone'), submitBtn = $('submit-btn
 // API-Basis: index.php liegt im gleichen Verzeichnis → PATH_INFO-URLs,
 // funktionieren ohne .htaccess und ohne mod_rewrite.
 const API_BASE = 'index.php/api';
+
+// php.ini-Werte wie "8M" / "512K" / "2G" → Bytes; 0/ungültig → unbegrenzt
+function iniToBytes(value) {
+    const m = /^\s*(\d+)\s*([KMG]?)/i.exec(String(value ?? ''));
+    if (!m) return 0;
+    const n = parseInt(m[1], 10);
+    if (n === 0) return 0;
+    const unit = (m[2] || '').toUpperCase();
+    return unit === 'G' ? n * 1073741824 : unit === 'M' ? n * 1048576 : unit === 'K' ? n * 1024 : n;
+}
 
 async function loadHealth() {
     try {
@@ -147,6 +158,20 @@ async function loadHealth() {
         } else {
             el.textContent = 'API läuft, aber OPENAI_API_KEY fehlt';
             el.classList.add('err');
+        }
+        // Effektives Upload-Limit = Minimum aus App-Config und php.ini
+        const limits = (data.config && data.config.php_limits) || {};
+        const phpMax = Math.min(
+            iniToBytes(limits.upload_max_filesize) || Infinity,
+            iniToBytes(limits.post_max_size) || Infinity
+        );
+        if (phpMax < maxBytes) {
+            maxBytes = phpMax;
+            $('limit-badge').textContent = 'Limit: ' + fmtSize(maxBytes) + ' (php.ini)';
+            $('limit-badge').classList.add('err');
+            $('limit-hint').textContent = 'Deine php.ini begrenzt Uploads auf ' + fmtSize(maxBytes)
+                + ' (upload_max_filesize=' + limits.upload_max_filesize
+                + ', post_max_size=' + limits.post_max_size + '). Für größere Dateien php.ini anpassen.';
         }
     } catch {
         $('health').textContent = 'API nicht erreichbar';
@@ -162,7 +187,7 @@ function fmtSize(bytes) {
 function validate(file) {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
     if (!ALLOWED.includes(ext)) return 'Ungültiges Format. Erlaubt: ' + ALLOWED.join(', ').toUpperCase();
-    if (file.size > MAX_BYTES) return 'Datei zu groß (' + fmtSize(file.size) + ').';
+    if (file.size > maxBytes) return 'Datei zu groß (' + fmtSize(file.size) + '). Limit: ' + fmtSize(maxBytes) + '.';
     return null;
 }
 

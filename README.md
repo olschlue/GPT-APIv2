@@ -83,10 +83,21 @@ Wer kürzere URLs möchte (`.../public/api/health` statt `.../public/index.php/a
 ## Tests
 
 ```bash
-composer test    # oder: php tests/run.php
+php tests/run.php
 ```
 
 Eigenständiger Test-Runner ohne externe Abhängigkeiten (Upload-Regeln, Config, Analyse-Schema, Router).
+
+## Fehlersuche
+
+**`[file_missing] Multipart-Formdata-Feld "file" fehlt.`** — Die Datei ist größer als das PHP-Limit. PHP verwirft dann den kompletten Request-Body (XAMPP-Defaults: `upload_max_filesize=2M`, `post_max_size=8M`). In der `php.ini` erhöhen und Apache neu starten:
+
+```ini
+upload_max_filesize=220M
+post_max_size=220M
+```
+
+Der Health-Endpunkt zeigt die aktiven PHP-Limits unter `config.php_limits` an; die Web-UI warnt automatisch, wenn das PHP-Limit unter `MAX_UPLOAD_MB` liegt.
 
 ## Struktur
 

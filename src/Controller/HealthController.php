@@ -24,6 +24,10 @@ final class HealthController
                 'transcribe_model' => $this->config->getString('OPENAI_TRANSCRIBE_MODEL'),
                 'analysis_model' => $this->config->getString('OPENAI_ANALYSIS_MODEL'),
                 'max_upload_mb' => $this->config->getInt('MAX_UPLOAD_MB', 200),
+                'php_limits' => [
+                    'upload_max_filesize' => (string) ini_get('upload_max_filesize'),
+                    'post_max_size' => (string) ini_get('post_max_size'),
+                ],
             ],
         ]);
     }

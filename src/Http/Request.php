@@ -67,4 +67,14 @@ final class Request
     {
         return (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
     }
+
+    /**
+     * Erkennt, ob PHP den Request-Body komplett verworfen hat, weil
+     * post_max_size überschritten wurde (dann sind $_POST und $_FILES leer,
+     * obwohl der Client Daten geschickt hat – typisch bei XAMPP-Defaults).
+     */
+    public function bodyDroppedByPhp(): bool
+    {
+        return $this->contentLength() > 0 && $_FILES === [] && $_POST === [];
+    }
 }

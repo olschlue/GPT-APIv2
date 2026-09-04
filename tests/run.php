@@ -252,6 +252,29 @@ check('Request: Pfad-Auflösung in Unterverzeichnis-Installation', function (): 
 
 // ---------------------------------------------------------------- Router
 
+check('Request: erkennt von PHP verworfenen Body (post_max_size)', function (): void {
+    $serverBackup = $_SERVER;
+    $filesBackup = $_FILES;
+    $postBackup = $_POST;
+    try {
+        $_SERVER['CONTENT_LENGTH'] = '50000000';
+        $_FILES = [];
+        $_POST = [];
+        assertTrue((new \App\Http\Request())->bodyDroppedByPhp(), 'leerer Body bei Content-Length > 0');
+
+        $_SERVER['CONTENT_LENGTH'] = '0';
+        assertTrue(!(new \App\Http\Request())->bodyDroppedByPhp(), 'kein Body gesendet');
+
+        $_SERVER['CONTENT_LENGTH'] = '50000000';
+        $_FILES = ['file' => ['name' => 'a.mp3', 'tmp_name' => '/tmp/x', 'error' => 0, 'size' => 1]];
+        assertTrue(!(new \App\Http\Request())->bodyDroppedByPhp(), 'Datei korrekt angekommen');
+    } finally {
+        $_SERVER = $serverBackup;
+        $_FILES = $filesBackup;
+        $_POST = $postBackup;
+    }
+});
+
 check('Router: registrierte Route wird aufgerufen', function (): void {
     $router = new Router();
     $called = false;
