@@ -118,14 +118,21 @@ check('Config: .env überschreibt Defaults', function (): void {
 check('AnalysisResult: vollständige Antwort wird übernommen', function (): void {
     $result = AnalysisResult::fromJson(json_encode([
         'summary' => 'Kurzfassung',
-        'outline' => [['topic' => 'Budget', 'points' => ['Kosten steigen']]],
+        'outline' => [
+            ['id' => '01', 'title' => '**Budget**', 'description' => ''],
+            ['id' => '02', 'description' => 'Kosten steigen'],
+        ],
         'tasks' => [['task' => 'Report erstellen', 'owner' => 'Anna', 'deadline' => '2026-09-10', 'priority' => 'high']],
         'decisions' => ['Launch im Oktober'],
         'extra' => 'wird verworfen',
     ]));
     assertSame('Kurzfassung', $result->summary);
-    assertSame('Budget', $result->outline[0]['topic']);
-    assertSame(['Kosten steigen'], $result->outline[0]['points']);
+    assertSame('01', $result->outline[0]['id']);
+    assertSame('**Budget**', $result->outline[0]['title']);
+    assertSame('', $result->outline[0]['description']);
+    assertSame('02', $result->outline[1]['id']);
+    assertSame('Kosten steigen', $result->outline[1]['description']);
+    assertTrue(!isset($result->outline[1]['title']), 'Zweiter Eintrag sollte kein title haben');
     assertSame('Anna', $result->tasks[0]['owner']);
     assertSame('high', $result->tasks[0]['priority']);
     assertSame(['Launch im Oktober'], $result->decisions);
@@ -159,14 +166,19 @@ check('AnalysisResult: ungültiges JSON → 502', function (): void {
     });
 });
 
-check('AnalysisResult: Einträge ohne task/topic werden übersprungen', function (): void {
+check('AnalysisResult: Einträge ohne title/description werden übersprungen', function (): void {
     $result = AnalysisResult::fromArray([
         'tasks' => [['owner' => 'Niemand'], ['task' => 'Gültig']],
-        'outline' => [['points' => ['x']], ['topic' => 'Gültig', 'points' => 'kein-array']],
+        'outline' => [
+            ['id' => '01'], // weder title noch description
+            ['id' => '02', 'title' => '**Gültig**', 'description' => ''],
+            ['id' => '03', 'description' => 'Auch gültig'],
+        ],
     ]);
     assertSame(1, count($result->tasks));
-    assertSame(1, count($result->outline));
-    assertSame([], $result->outline[0]['points']);
+    assertSame(2, count($result->outline));
+    assertSame('**Gültig**', $result->outline[0]['title']);
+    assertSame('Auch gültig', $result->outline[1]['description']);
 });
 
 // ---------------------------------------------------------------- AudioUploadHandler

@@ -58,7 +58,7 @@ final class AnalysisResult
         return is_string($value) ? $value : '';
     }
 
-    /** @return array<int, array{topic: string, points: array<int, string>}> */
+    /** @return array<int, array{id: string, title?: string, description: string}> */
     private static function outline(mixed $items): array
     {
         $outline = [];
@@ -69,20 +69,28 @@ final class AnalysisResult
             if (!is_array($item)) {
                 continue;
             }
-            $topic = self::str($item, 'topic');
-            if ($topic === '') {
-                continue;
+
+            // ID generieren, falls nicht vorhanden
+            $id = $item['id'] ?? bin2hex(random_bytes(16));
+
+            // Eintrag hat entweder title+description oder nur description
+            $entry = ['id' => (string) $id];
+
+            if (isset($item['title']) && is_string($item['title']) && $item['title'] !== '') {
+                $entry['title'] = $item['title'];
             }
-            $points = [];
-            $rawPoints = $item['points'] ?? [];
-            if (is_array($rawPoints)) {
-                foreach ($rawPoints as $point) {
-                    if (is_string($point) && $point !== '') {
-                        $points[] = $point;
-                    }
-                }
+
+            $description = $item['description'] ?? '';
+            if (is_string($description)) {
+                $entry['description'] = $description;
+            } else {
+                $entry['description'] = '';
             }
-            $outline[] = ['topic' => $topic, 'points' => $points];
+
+            // Eintrag muss entweder title oder description haben
+            if (isset($entry['title']) || $entry['description'] !== '') {
+                $outline[] = $entry;
+            }
         }
         return $outline;
     }

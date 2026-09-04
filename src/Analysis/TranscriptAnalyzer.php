@@ -19,7 +19,9 @@ Antworte ausschließlich mit einem validen JSON-Objekt mit exakt diesen Feldern:
 {
   "summary": "prägnante Zusammenfassung des Inhalts in 3-5 Sätzen",
   "outline": [
-    {"topic": "Themenblock", "points": ["Kernpunkt 1", "Kernpunkt 2"]}
+    {"id": "eindeutige-id", "title": "**Themenblock-Titel**", "description": ""},
+    {"id": "eindeutige-id", "description": "Detailpunkt ohne Titel"},
+    {"id": "eindeutige-id", "description": "Weiterer Detailpunkt"}
   ],
   "tasks": [
     {"task": "konkrete Aufgabe", "owner": "verantwortliche Person oder leer", "deadline": "ISO-Datum oder leer", "priority": "low|medium|high"}
@@ -32,6 +34,8 @@ Antworte ausschließlich mit einem validen JSON-Objekt mit exakt diesen Feldern:
 Regeln:
 - Keine zusätzlichen Felder, kein Markdown, keine Erklärungen – nur das JSON-Objekt.
 - Schreibe in der Sprache des Transkripts.
+- outline ist ein FLACHES Array: Themenblöcke haben title (mit **...**) und leere description, Detailpunkte haben nur description.
+- Jeder outline-Eintrag braucht eine eindeutige id (z. B. fortlaufende Nummer oder Hash).
 - Wenn es keine Tasks oder Decisions gibt, liefere leere Arrays.
 PROMPT;
 
