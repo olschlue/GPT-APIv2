@@ -34,12 +34,12 @@ final class OpenAIClient
      */
     public function transcribe(string $filePath, string $mimeType): string
     {
-        // Diarize-Modelle benötigen chunking_strategy und verbose_json für Segmente
+        // Diarize-Modelle benötigen chunking_strategy
         $isDiarize = str_contains($this->transcribeModel, 'diarize');
 
         $postFields = [
             'model' => $this->transcribeModel,
-            'response_format' => $isDiarize ? 'verbose_json' : 'json',
+            'response_format' => 'json',
             'file' => new CURLFile($filePath, $mimeType, basename($filePath)),
         ];
 
@@ -70,14 +70,22 @@ final class OpenAIClient
             throw new ApiException('openai_invalid_response', 'Unerwartete Antwort des Transkriptions-Endpunkts.', 502);
         }
 
-        // Bei Diarize-Modellen: Sprecher-Segmente ins Transkript einbauen
+        // Bei Diarize-Modellen: Sprecher-Segmente suchen (verschiedene mögliche Felder)
         if ($isDiarize) {
-            if (isset($data['segments']) && is_array($data['segments']) && $data['segments'] !== []) {
-                return $this->formatWithSpeakers($data['segments']);
+            // Mögliche Felder für Segmente: segments, speaker_segments, utterances
+            $segments = $data['segments'] ?? $data['speaker_segments'] ?? $data['utterances'] ?? null;
+
+            if (is_array($segments) && $segments !== []) {
+                return $this->formatWithSpeakers($segments);
             }
-            // Fallback: Wenn keine Segmente, nutze text-Feld mit Hinweis
+
+            // Fallback: text-Feld mit Debug-Info
             if (isset($data['text']) && is_string($data['text'])) {
-                return $data['text'] . "\n\n[Hinweis: Keine Sprecher-Segmente von der API erhalten]";
+                $debugInfo = sprintf(
+                    "\n\n[Debug: API-Response-Felder: %s]",
+                    implode(', ', array_keys($data))
+                );
+                return $data['text'] . $debugInfo;
             }
         }
 
