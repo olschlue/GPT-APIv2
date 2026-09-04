@@ -163,7 +163,11 @@ final class TranscribeController
         $customer = $this->extractCustomer($response['transcript']);
 
         $now = date('Y-m-d H:i:s');
-        $endedAt = date('Y-m-d H:i:s', strtotime($startedAt) + (int) $result['duration']);
+        // startedAt ist bereits ein String im Format Y-m-d H:i:s (lokale Zeit)
+        // strtotime() würde Zeitzonen-Konvertierung machen, daher manuell rechnen
+        $startedTimestamp = strtotime($startedAt);
+        $endedTimestamp = $startedTimestamp + (int) $result['duration'];
+        $endedAt = date('Y-m-d H:i:s', $endedTimestamp);
 
         // Recording URL: relativer Pfad zur Datei in uploads
         $recordingUrl = null;

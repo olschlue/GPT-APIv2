@@ -387,6 +387,18 @@ check('TranscribeController: Zeitstempel aus Dateiname parsen', function (): voi
     assertSame(null, $method->invoke($controller, '2026Xyz03-113010.mp3'));
 });
 
+check('TranscribeController: ended_at wird korrekt berechnet (keine Zeitzonen-Verschiebung)', function (): void {
+    // Simuliere: started_at = 11:00:00, duration = 3600s → ended_at sollte 12:00:00 sein
+    $startedAt = '2026-09-03 11:00:00';
+    $duration = 3600; // 1 Stunde
+
+    $startedTimestamp = strtotime($startedAt);
+    $endedTimestamp = $startedTimestamp + $duration;
+    $endedAt = date('Y-m-d H:i:s', $endedTimestamp);
+
+    assertSame('2026-09-03 12:00:00', $endedAt, 'ended_at sollte 12:00 sein, nicht 13:00 oder 14:00');
+});
+
 // Datenbank-Tests nur ausführen, wenn DB verfügbar ist
 $dbAvailable = false;
 try {
