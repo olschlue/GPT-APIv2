@@ -10,6 +10,10 @@ PHP-API, die Audio-Dateien (MP3, M4A, WAV, WEBM) per Upload entgegennimmt, mit d
 | GET | `/api/health` | Health-Check inkl. Konfigurationsstatus |
 | POST | `/api/transcribe` | Multipart-Formdata (Feld `file`) → Transkription + Analyse als JSON |
 
+**Lange Dateien (> 23 Minuten):** Die App zerlegt automatisch Dateien über 20 Minuten in Chunks, transkribiert einzeln und führt zusammen. Voraussetzung: FFmpeg ist installiert (`apt install ffmpeg` auf Ubuntu/Debian).
+
+**Sprechererkennung:** Mit `OPENAI_TRANSCRIBE_MODEL=gpt-4o-transcribe-diarize` in der `.env` werden Sprecher unterschieden (erfordert `chunking_strategy=auto`, wird automatisch gesendet).
+
 ### Beispiel: Transkription
 
 ```bash
@@ -42,6 +46,15 @@ cp .env.example .env   # OPENAI_API_KEY eintragen
 ```
 
 Kein Composer erforderlich — ein eigener Autoloader lädt die Klassen automatisch.
+
+**Für lange Dateien (> 20 Min):** FFmpeg installieren:
+```bash
+# Ubuntu/Debian
+sudo apt install ffmpeg
+
+# Windows (XAMPP): ffmpeg.exe in PATH legen oder nach C:\ffmpeg installieren
+# Download: https://ffmpeg.org/download.html
+```
 
 Konfiguration (Priorität: Umgebungsvariable > `.env` > `config/config.php`):
 

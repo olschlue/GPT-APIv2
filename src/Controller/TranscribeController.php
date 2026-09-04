@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Analysis\TranscriptAnalyzer;
+use App\Audio\AudioChunker;
+use App\Audio\ChunkedTranscriber;
 use App\Config;
 use App\Http\ApiException;
 use App\Http\Request;
@@ -66,7 +68,13 @@ final class TranscribeController
                 timeoutAnalysis: $this->config->getInt('HTTP_TIMEOUT_ANALYSIS', 300),
             );
 
-            $transcript = $client->transcribe($upload['path'], $upload['mime']);
+            // Chunking für lange Dateien (über 20 Minuten)
+            $chunkTempDir = $this->config->getString('UPLOAD_DIR') . '/chunks';
+            $chunker = new AudioChunker($chunkTempDir);
+            $transcriber = new ChunkedTranscriber($client, $chunker);
+            $result = $transcriber->transcribe($upload['path'], $upload['mime']);
+
+            $transcript = $result['transcript'];
             $analysis = (new TranscriptAnalyzer($client))->analyze($transcript);
         } finally {
             // Temporäre Datei in jedem Fall wieder entfernen
@@ -81,6 +89,12 @@ final class TranscribeController
             'outline' => $analysis->outline,
             'tasks' => $analysis->tasks,
             'decisions' => $analysis->decisions,
+        ];
+
+        // Metadaten hinzufügen
+        $response['_meta'] = [
+            'duration_seconds' => round($result['duration'], 1),
+            'chunks_used' => $result['chunks_used'],
         ];
 
         // MIME-Warnung hinzufügen, wenn Extension und Inhalt abweichen

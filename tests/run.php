@@ -10,6 +10,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/bootstrap.php';
 
 use App\Analysis\AnalysisResult;
+use App\Audio\AudioChunker;
 use App\Config;
 use App\Http\ApiException;
 use App\Router;
@@ -248,6 +249,46 @@ check('Request: Pfad-Auflösung in Unterverzeichnis-Installation', function (): 
     } finally {
         $_SERVER = $serverBackup;
     }
+});
+
+// ---------------------------------------------------------------- AudioChunker
+
+check('AudioChunker: FFmpeg-Verfügbarkeit prüfen', function (): void {
+    $available = AudioChunker::isAvailable();
+    assertTrue(is_bool($available), 'isAvailable() muss bool zurückgeben');
+    // Im Codespace sollte FFmpeg verfügbar sein (wurde installiert)
+    if (!$available) {
+        echo "    ⚠ FFmpeg nicht verfügbar – Chunking-Tests übersprungen\n";
+    }
+});
+
+check('AudioChunker: Dauer ermitteln', function (): void {
+    if (!AudioChunker::isAvailable()) {
+        return; // Skip wenn FFmpeg fehlt
+    }
+    $chunker = new AudioChunker(sys_get_temp_dir());
+    // Erstelle eine 2-Sekunden-Testdatei mit ffmpeg
+    $testFile = sys_get_temp_dir() . '/test-duration.mp3';
+    exec('ffmpeg -y -f lavfi -i sine=frequency=1000:duration=2 -q:a 9 ' . escapeshellarg($testFile) . ' 2>/dev/null');
+    if (!is_file($testFile)) {
+        throw new RuntimeException('Konnte Test-Audio nicht erstellen');
+    }
+    $duration = $chunker->getDuration($testFile);
+    assertTrue($duration >= 1.9 && $duration <= 2.1, "Dauer sollte ~2s sein, ist {$duration}s");
+    unlink($testFile);
+});
+
+check('AudioChunker: kurze Datei → kein Chunking', function (): void {
+    if (!AudioChunker::isAvailable()) {
+        return;
+    }
+    $chunker = new AudioChunker(sys_get_temp_dir());
+    $testFile = sys_get_temp_dir() . '/test-short.mp3';
+    exec('ffmpeg -y -f lavfi -i sine=frequency=1000:duration=10 -q:a 9 ' . escapeshellarg($testFile) . ' 2>/dev/null');
+    $chunks = $chunker->chunk($testFile, 'audio/mpeg');
+    assertSame(1, count($chunks), 'Kurze Datei sollte 1 Chunk ergeben');
+    assertSame($testFile, $chunks[0]['path'], 'Chunk sollte Original-Pfad sein');
+    unlink($testFile);
 });
 
 // ---------------------------------------------------------------- Router
